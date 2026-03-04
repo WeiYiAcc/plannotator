@@ -37,7 +37,7 @@ export const ImageAnnotator: React.FC<ImageAnnotatorProps> = ({
   }, [isOpen, initialName]);
 
   // Keyboard shortcuts
-  // biome-ignore lint/correctness/useExhaustiveDependencies: handlers are stable useCallbacks with empty deps
+  // biome-ignore lint/correctness/useExhaustiveDependencies: handleAccept is a plain function (not useCallback) — adding it would re-attach listener every render; state.strokes ensures fresh closure
   useEffect(() => {
     if (!isOpen) return;
 

@@ -126,7 +126,6 @@ export const Settings: React.FC<SettingsProps> = ({
           setDetectedVaults(data.vaults || []);
           // Auto-select first vault if none set
           if (data.vaults?.length > 0 && !obsidian.vaultPath) {
-            // biome-ignore lint/correctness/noInvalidUseBeforeDeclaration: handleObsidianChange defined after this effect but stable
             handleObsidianChange({ vaultPath: data.vaults[0] });
           }
         })

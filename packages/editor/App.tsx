@@ -420,14 +420,13 @@ const App: React.FC = () => {
   const sidebar = useSidebar(getUIPreferences().tocEnabled);
 
   // Sync sidebar open state when preference changes in Settings
-  // biome-ignore lint/correctness/useExhaustiveDependencies: sidebar methods are stable
   useEffect(() => {
     if (uiPrefs.tocEnabled) {
       sidebar.open('toc');
     } else {
       sidebar.close();
     }
-  }, [uiPrefs.tocEnabled]);
+  }, [uiPrefs.tocEnabled, sidebar.open, sidebar.close]);
 
   // Clear diff view when switching away from versions tab
   // biome-ignore lint/correctness/useExhaustiveDependencies: isPlanDiffActive is read, not a trigger
@@ -479,10 +478,9 @@ const App: React.FC = () => {
   }, [showVaultTab, uiPrefs]);
 
   // Clear active file when vault browser is disabled
-  // biome-ignore lint/correctness/useExhaustiveDependencies: vaultBrowser.setActiveFile is stable
   useEffect(() => {
     if (!showVaultTab) vaultBrowser.setActiveFile(null);
-  }, [showVaultTab]);
+  }, [showVaultTab, vaultBrowser.setActiveFile]);
 
   // Auto-fetch vault tree when vault tab is first opened
   // biome-ignore lint/correctness/useExhaustiveDependencies: vaultBrowser methods/state are read inside, not triggers

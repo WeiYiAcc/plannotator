@@ -30,6 +30,7 @@
       "security": {
         "noDangerouslySetInnerHtml": "warn"
       },
+      // TODO: re-enable a11y rules and fix ~311 findings (noSvgWithoutTitle, useButtonType, etc.)
       "a11y": {
         "recommended": false
       }

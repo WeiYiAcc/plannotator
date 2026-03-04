@@ -84,7 +84,7 @@ export function parseChecklist(content: string): ChecklistItem[] {
 
 // ── Progress Tracking ────────────────────────────────────────────────────
 
-export function extractDoneSteps(message: string): number[] {
+function extractDoneSteps(message: string): number[] {
   const steps: number[] = [];
   for (const match of message.matchAll(/\[DONE:(\d+)\]/gi)) {
     const step = Number(match[1]);

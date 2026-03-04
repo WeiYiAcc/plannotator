@@ -30,7 +30,7 @@ function getSvgPathFromStroke(stroke: number[][]): string {
 /**
  * Render a freehand pen stroke using perfect-freehand
  */
-export function renderPenStroke(
+function renderPenStroke(
   ctx: CanvasRenderingContext2D,
   points: Point[],
   color: string,
@@ -50,7 +50,7 @@ export function renderPenStroke(
 /**
  * Render an arrow from start to end point
  */
-export function renderArrow(
+function renderArrow(
   ctx: CanvasRenderingContext2D,
   start: Point,
   end: Point,
@@ -95,7 +95,7 @@ export function renderArrow(
 /**
  * Render a circle from edge to edge (first click is one edge, drag to opposite edge)
  */
-export function renderCircle(
+function renderCircle(
   ctx: CanvasRenderingContext2D,
   start: Point,
   end: Point,

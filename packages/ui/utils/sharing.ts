@@ -8,36 +8,42 @@
  * Inspired by textarea.my's approach.
  */
 
-import { Annotation, AnnotationType, type ImageAttachment } from '../types';
 import { compress, decompress } from '@plannotator/shared/compress';
-import { encrypt, decrypt } from '@plannotator/shared/crypto';
+import { decrypt, encrypt } from '@plannotator/shared/crypto';
+import { type Annotation, AnnotationType, type ImageAttachment } from '../types';
 
 // Image in shareable format: plain string (old) or [path, name] tuple (new)
 type ShareableImage = string | [string, string];
 
 // Minimal shareable annotation format: [type, originalText, text?, author?, images?]
 export type ShareableAnnotation =
-  | ['D', string, string | null, ShareableImage[]?]             // Deletion: type, original, author, images
-  | ['R', string, string, string | null, ShareableImage[]?]     // Replacement: type, original, replacement, author, images
-  | ['C', string, string, string | null, ShareableImage[]?]     // Comment: type, original, comment, author, images
-  | ['I', string, string, string | null, ShareableImage[]?]     // Insertion: type, context, new text, author, images
-  | ['G', string, string | null, ShareableImage[]?];            // Global Comment: type, comment, author, images
+  | ['D', string, string | null, ShareableImage[]?] // Deletion: type, original, author, images
+  | ['R', string, string, string | null, ShareableImage[]?] // Replacement: type, original, replacement, author, images
+  | ['C', string, string, string | null, ShareableImage[]?] // Comment: type, original, comment, author, images
+  | ['I', string, string, string | null, ShareableImage[]?] // Insertion: type, context, new text, author, images
+  | ['G', string, string | null, ShareableImage[]?]; // Global Comment: type, comment, author, images
 
 export interface SharePayload {
-  p: string;  // plan markdown
+  p: string; // plan markdown
   a: ShareableAnnotation[];
-  g?: ShareableImage[];  // global attachments (path strings or [path, name] tuples)
+  g?: ShareableImage[]; // global attachments (path strings or [path, name] tuples)
 }
 
 /**
  * Convert ShareableImage[] to ImageAttachment[] (handles old plain-string format)
  */
-export function parseShareableImages(raw: ShareableImage[] | undefined): ImageAttachment[] | undefined {
+export function parseShareableImages(
+  raw: ShareableImage[] | undefined,
+): ImageAttachment[] | undefined {
   if (!raw?.length) return undefined;
-  return raw.map(img => {
+  return raw.map((img) => {
     if (typeof img === 'string') {
       // Old format: plain path string — derive name from filename
-      const name = img.split('/').pop()?.replace(/\.[^.]+$/, '') || 'image';
+      const name =
+        img
+          .split('/')
+          .pop()
+          ?.replace(/\.[^.]+$/, '') || 'image';
       return { path: img, name };
     }
     return { path: img[0], name: img[1] };
@@ -47,9 +53,11 @@ export function parseShareableImages(raw: ShareableImage[] | undefined): ImageAt
 /**
  * Convert ImageAttachment[] to ShareableImage[] for compact serialization
  */
-export function toShareableImages(images: ImageAttachment[] | undefined): ShareableImage[] | undefined {
+export function toShareableImages(
+  images: ImageAttachment[] | undefined,
+): ShareableImage[] | undefined {
   if (!images?.length) return undefined;
-  return images.map(img => [img.path, img.name]);
+  return images.map((img) => [img.path, img.name]);
 }
 
 // Re-export compress/decompress from shared package (single source of truth)
@@ -59,7 +67,7 @@ export { compress, decompress };
  * Convert full Annotation objects to minimal shareable format
  */
 export function toShareable(annotations: Annotation[]): ShareableAnnotation[] {
-  return annotations.map(ann => {
+  return annotations.map((ann) => {
     const author = ann.author || null;
     const images = toShareableImages(ann.images);
 
@@ -86,11 +94,11 @@ export function toShareable(annotations: Annotation[]): ShareableAnnotation[] {
  */
 export function fromShareable(data: ShareableAnnotation[]): Annotation[] {
   const typeMap: Record<string, AnnotationType> = {
-    'D': AnnotationType.DELETION,
-    'R': AnnotationType.REPLACEMENT,
-    'C': AnnotationType.COMMENT,
-    'I': AnnotationType.INSERTION,
-    'G': AnnotationType.GLOBAL_COMMENT,
+    D: AnnotationType.DELETION,
+    R: AnnotationType.REPLACEMENT,
+    C: AnnotationType.COMMENT,
+    I: AnnotationType.INSERTION,
+    G: AnnotationType.GLOBAL_COMMENT,
   };
 
   return data.map((item, index) => {
@@ -119,19 +127,22 @@ export function fromShareable(data: ShareableAnnotation[]): Annotation[] {
     const originalText = item[1];
     // For deletion: [type, original, author, images?]
     // For others: [type, original, text, author, images?]
-    const text = type === 'D' ? undefined : item[2] as string;
-    const author = type === 'D' ? item[2] as string | null : item[3] as string | null;
-    const rawImages = type === 'D' ? item[3] as ShareableImage[] | undefined : item[4] as ShareableImage[] | undefined;
+    const text = type === 'D' ? undefined : (item[2] as string);
+    const author = type === 'D' ? (item[2] as string | null) : (item[3] as string | null);
+    const rawImages =
+      type === 'D'
+        ? (item[3] as ShareableImage[] | undefined)
+        : (item[4] as ShareableImage[] | undefined);
 
     return {
       id: `shared-${index}-${Date.now()}`,
-      blockId: '',  // Will be populated during highlight restoration
+      blockId: '', // Will be populated during highlight restoration
       startOffset: 0,
       endOffset: 0,
       type: typeMap[type],
       text: text || undefined,
       originalText,
-      createdA: Date.now() + index,  // Preserve order
+      createdA: Date.now() + index, // Preserve order
       author: author || undefined,
       images: parseShareableImages(rawImages),
       // startMeta/endMeta will be set by web-highlighter
@@ -146,7 +157,7 @@ export async function generateShareUrl(
   markdown: string,
   annotations: Annotation[],
   globalAttachments?: ImageAttachment[],
-  baseUrl: string = DEFAULT_SHARE_BASE
+  baseUrl: string = DEFAULT_SHARE_BASE,
 ): Promise<string> {
   const payload: SharePayload = {
     p: markdown,
@@ -213,7 +224,7 @@ export async function createShortShareUrl(
     pasteApiUrl?: string;
     /** Override the share site base URL used in the returned short link */
     shareBaseUrl?: string;
-  }
+  },
 ): Promise<{ shortUrl: string; id: string } | null> {
   const pasteApi = options?.pasteApiUrl ?? DEFAULT_PASTE_API;
   const shareBase = options?.shareBaseUrl ?? DEFAULT_SHARE_BASE;
@@ -264,7 +275,7 @@ export async function createShortShareUrl(
 export async function loadFromPasteId(
   pasteId: string,
   pasteApiUrl: string = DEFAULT_PASTE_API,
-  encryptionKey?: string
+  encryptionKey?: string,
 ): Promise<SharePayload | null> {
   try {
     const response = await fetch(`${pasteApiUrl}/api/paste/${pasteId}`, {
@@ -281,11 +292,11 @@ export async function loadFromPasteId(
     if (encryptionKey) {
       // Encrypted path: decrypt ciphertext, then decompress
       const compressed = await decrypt(result.data, encryptionKey);
-      return await decompress(compressed) as SharePayload;
+      return (await decompress(compressed)) as SharePayload;
     }
 
     // Legacy unencrypted path: decompress directly
-    return await decompress(result.data) as SharePayload;
+    return (await decompress(result.data)) as SharePayload;
   } catch (e) {
     console.warn('[sharing] Failed to load from paste ID:', e);
     return null;

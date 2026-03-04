@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import type { ResizeHandleProps as BaseProps } from '../hooks/useResizablePanel';
 
 interface Props extends BaseProps {

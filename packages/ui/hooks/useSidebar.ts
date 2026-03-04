@@ -5,9 +5,9 @@
  * The sidebar is shared between the Table of Contents, Version Browser, and Vault Browser views.
  */
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from 'react';
 
-export type SidebarTab = "toc" | "versions" | "vault";
+export type SidebarTab = 'toc' | 'versions' | 'vault';
 
 export interface UseSidebarReturn {
   isOpen: boolean;
@@ -27,7 +27,7 @@ export interface UseSidebarReturn {
 
 export function useSidebar(initialOpen: boolean): UseSidebarReturn {
   const [isOpen, setIsOpen] = useState(initialOpen);
-  const [activeTab, setActiveTab] = useState<SidebarTab>("toc");
+  const [activeTab, setActiveTab] = useState<SidebarTab>('toc');
 
   const open = useCallback((tab?: SidebarTab) => {
     setIsOpen(true);
@@ -49,7 +49,7 @@ export function useSidebar(initialOpen: boolean): UseSidebarReturn {
         setActiveTab(tab);
       }
     },
-    [isOpen, activeTab]
+    [isOpen, activeTab],
   );
 
   return { isOpen, activeTab, open, close, toggleTab };

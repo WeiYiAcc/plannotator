@@ -2,7 +2,7 @@
  * Hook for fetching and validating OpenCode agents
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getAgentSwitchSettings } from '../utils/agentSwitch';
 
 export interface Agent {
@@ -33,7 +33,7 @@ export function useAgents(origin: 'claude-code' | 'opencode' | 'pi' | null): Use
 
     setIsLoading(true);
     fetch('/api/agents')
-      .then(res => res.json())
+      .then((res) => res.json())
       .then((data: { agents?: Agent[] }) => {
         if (data.agents?.length) {
           setAgents(data.agents);
@@ -47,10 +47,13 @@ export function useAgents(origin: 'claude-code' | 'opencode' | 'pi' | null): Use
       });
   }, [origin]);
 
-  const validateAgent = useCallback((agentName: string): boolean => {
-    if (agents.length === 0) return true; // No agents = can't validate, assume ok
-    return agents.some(a => a.id.toLowerCase() === agentName.toLowerCase());
-  }, [agents]);
+  const validateAgent = useCallback(
+    (agentName: string): boolean => {
+      if (agents.length === 0) return true; // No agents = can't validate, assume ok
+      return agents.some((a) => a.id.toLowerCase() === agentName.toLowerCase());
+    },
+    [agents],
+  );
 
   const getAgentWarning = useCallback((): string | null => {
     if (agents.length === 0) return null; // Can't validate without agents

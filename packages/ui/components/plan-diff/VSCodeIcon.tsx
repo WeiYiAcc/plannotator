@@ -1,12 +1,7 @@
-import React from "react";
+import type React from 'react';
 
 export const VSCodeIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg
-    className={className}
-    viewBox="0 0 100 100"
-    fill="none"
-    xmlns="http://www.w3.org/2000/svg"
-  >
+  <svg className={className} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
     <mask
       id="mask0"
       maskType="alpha"
@@ -40,7 +35,7 @@ export const VSCodeIcon: React.FC<{ className?: string }> = ({ className }) => (
           fill="#1F9CF0"
         />
       </g>
-      <g style={{ mixBlendMode: "overlay" }} opacity="0.25">
+      <g style={{ mixBlendMode: 'overlay' }} opacity="0.25">
         <path
           fillRule="evenodd"
           clipRule="evenodd"
@@ -67,21 +62,9 @@ export const VSCodeIcon: React.FC<{ className?: string }> = ({ className }) => (
         />
         <feOffset />
         <feGaussianBlur stdDeviation="4.16667" />
-        <feColorMatrix
-          type="matrix"
-          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"
-        />
-        <feBlend
-          mode="overlay"
-          in2="BackgroundImageFix"
-          result="effect1_dropShadow"
-        />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="effect1_dropShadow"
-          result="shape"
-        />
+        <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
+        <feBlend mode="overlay" in2="BackgroundImageFix" result="effect1_dropShadow" />
+        <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
       </filter>
       <filter
         id="filter1_d"
@@ -100,21 +83,9 @@ export const VSCodeIcon: React.FC<{ className?: string }> = ({ className }) => (
         />
         <feOffset />
         <feGaussianBlur stdDeviation="4.16667" />
-        <feColorMatrix
-          type="matrix"
-          values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0"
-        />
-        <feBlend
-          mode="overlay"
-          in2="BackgroundImageFix"
-          result="effect1_dropShadow"
-        />
-        <feBlend
-          mode="normal"
-          in="SourceGraphic"
-          in2="effect1_dropShadow"
-          result="shape"
-        />
+        <feColorMatrix type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0" />
+        <feBlend mode="overlay" in2="BackgroundImageFix" result="effect1_dropShadow" />
+        <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow" result="shape" />
       </filter>
       <linearGradient
         id="paint0_linear"

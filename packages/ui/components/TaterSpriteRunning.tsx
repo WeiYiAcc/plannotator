@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import spriteSheet from '../sprite_package_additional/sprite.png';
 
 // Sprite: 176x96 native, 24 frames, 5 second animation cycle

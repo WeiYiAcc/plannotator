@@ -1,4 +1,4 @@
-import { Block, type Annotation, type ImageAttachment } from '../types';
+import type { Annotation, Block, ImageAttachment } from '../types';
 
 /**
  * Parsed YAML frontmatter as key-value pairs.
@@ -11,7 +11,10 @@ export interface Frontmatter {
  * Extract YAML frontmatter from markdown if present.
  * Returns both the parsed frontmatter and the remaining markdown.
  */
-export function extractFrontmatter(markdown: string): { frontmatter: Frontmatter | null; content: string } {
+export function extractFrontmatter(markdown: string): {
+  frontmatter: Frontmatter | null;
+  content: string;
+} {
   const trimmed = markdown.trimStart();
   if (!trimmed.startsWith('---')) {
     return { frontmatter: null, content: markdown };
@@ -75,7 +78,7 @@ export const parseMarkdownToBlocks = (markdown: string): Block[] => {
 
   let buffer: string[] = [];
   let currentType: Block['type'] = 'paragraph';
-  let currentLevel = 0;
+  const currentLevel = 0;
   let bufferStartLine = 1; // Track the start line of the current buffer
 
   const flush = () => {
@@ -87,7 +90,7 @@ export const parseMarkdownToBlocks = (markdown: string): Block[] => {
         content: content,
         level: currentLevel,
         order: currentId,
-        startLine: bufferStartLine
+        startLine: bufferStartLine,
       });
       buffer = [];
     }
@@ -108,7 +111,7 @@ export const parseMarkdownToBlocks = (markdown: string): Block[] => {
         content: trimmed.replace(/^#+\s*/, ''),
         level,
         order: currentId,
-        startLine: currentLineNum
+        startLine: currentLineNum,
       });
       continue;
     }
@@ -121,7 +124,7 @@ export const parseMarkdownToBlocks = (markdown: string): Block[] => {
         type: 'hr',
         content: '',
         order: currentId,
-        startLine: currentLineNum
+        startLine: currentLineNum,
       });
       continue;
     }
@@ -139,7 +142,7 @@ export const parseMarkdownToBlocks = (markdown: string): Block[] => {
       let content = trimmed.replace(/^(\*|-|\d+\.)\s/, '');
 
       // Check for checkbox syntax: [ ] or [x] or [X]
-      let checked: boolean | undefined = undefined;
+      let checked: boolean | undefined;
       const checkboxMatch = content.match(/^\[([ xX])\]\s*/);
       if (checkboxMatch) {
         checked = checkboxMatch[1].toLowerCase() === 'x';
@@ -153,25 +156,25 @@ export const parseMarkdownToBlocks = (markdown: string): Block[] => {
         level: listLevel,
         checked,
         order: currentId,
-        startLine: currentLineNum
+        startLine: currentLineNum,
       });
       continue;
     }
 
     // Blockquotes
     if (trimmed.startsWith('>')) {
-       // Check if previous was blockquote, if so, merge? No, separate for now
-       flush();
-       blocks.push({
-         id: `block-${currentId++}`,
-         type: 'blockquote',
-         content: trimmed.replace(/^>\s*/, ''),
-         order: currentId,
-         startLine: currentLineNum
-       });
-       continue;
+      // Check if previous was blockquote, if so, merge? No, separate for now
+      flush();
+      blocks.push({
+        id: `block-${currentId++}`,
+        type: 'blockquote',
+        content: trimmed.replace(/^>\s*/, ''),
+        order: currentId,
+        startLine: currentLineNum,
+      });
+      continue;
     }
-    
+
     // Code blocks (naive)
     if (trimmed.startsWith('```')) {
       flush();
@@ -179,9 +182,9 @@ export const parseMarkdownToBlocks = (markdown: string): Block[] => {
       // Extract language from fence (e.g., ```rust → "rust")
       const language = trimmed.slice(3).trim() || undefined;
       // Fast forward until end of code block
-      let codeContent = [];
+      const codeContent = [];
       i++; // Skip start fence
-      while(i < lines.length && !lines[i].trim().startsWith('```')) {
+      while (i < lines.length && !lines[i].trim().startsWith('```')) {
         codeContent.push(lines[i]);
         i++;
       }
@@ -191,7 +194,7 @@ export const parseMarkdownToBlocks = (markdown: string): Block[] => {
         content: codeContent.join('\n'),
         language,
         order: currentId,
-        startLine: codeStartLine
+        startLine: codeStartLine,
       });
       continue;
     }
@@ -206,7 +209,10 @@ export const parseMarkdownToBlocks = (markdown: string): Block[] => {
       while (i + 1 < lines.length) {
         const nextLine = lines[i + 1].trim();
         // Continue if line has table structure (contains | and looks like table content)
-        if (nextLine.startsWith('|') || (nextLine.includes('|') && nextLine.match(/^\|?.+\|.+\|?$/))) {
+        if (
+          nextLine.startsWith('|') ||
+          (nextLine.includes('|') && nextLine.match(/^\|?.+\|.+\|?$/))
+        ) {
           i++;
           tableLines.push(lines[i]);
         } else {
@@ -219,7 +225,7 @@ export const parseMarkdownToBlocks = (markdown: string): Block[] => {
         type: 'table',
         content: tableLines.join('\n'),
         order: currentId,
-        startLine: tableStartLine
+        startLine: tableStartLine,
       });
       continue;
     }
@@ -237,21 +243,25 @@ export const parseMarkdownToBlocks = (markdown: string): Block[] => {
     }
     buffer.push(line);
   }
-  
+
   flush(); // Final flush
 
   return blocks;
 };
 
-export const exportAnnotations = (blocks: Block[], annotations: any[], globalAttachments: ImageAttachment[] = []): string => {
+export const exportAnnotations = (
+  blocks: Block[],
+  annotations: any[],
+  globalAttachments: ImageAttachment[] = [],
+): string => {
   if (annotations.length === 0 && globalAttachments.length === 0) {
     return 'No changes detected.';
   }
 
   // Sort annotations by block and offset
   const sortedAnns = [...annotations].sort((a, b) => {
-    const blockA = blocks.findIndex(blk => blk.id === a.blockId);
-    const blockB = blocks.findIndex(blk => blk.id === b.blockId);
+    const blockA = blocks.findIndex((blk) => blk.id === a.blockId);
+    const blockB = blocks.findIndex((blk) => blk.id === b.blockId);
     if (blockA !== blockB) return blockA - blockB;
     return a.startOffset - b.startOffset;
   });
@@ -273,7 +283,7 @@ export const exportAnnotations = (blocks: Block[], annotations: any[], globalAtt
   }
 
   sortedAnns.forEach((ann, index) => {
-    const block = blocks.find(b => b.id === ann.blockId);
+    const _block = blocks.find((b) => b.id === ann.blockId);
 
     output += `## ${index + 1}. `;
 
@@ -323,7 +333,7 @@ export const exportAnnotations = (blocks: Block[], annotations: any[], globalAtt
 };
 
 export const exportLinkedDocAnnotations = (
-  docAnnotations: Map<string, { annotations: Annotation[]; globalAttachments: ImageAttachment[] }>
+  docAnnotations: Map<string, { annotations: Annotation[]; globalAttachments: ImageAttachment[] }>,
 ): string => {
   let output = `\n# Linked Document Feedback\n\nThe following feedback is on documents referenced in the plan.\n\n`;
 

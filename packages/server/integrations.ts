@@ -2,10 +2,10 @@
  * Note-taking app integrations (Obsidian, Bear)
  */
 
-import { $ } from "bun";
-import { join } from "path";
-import { mkdirSync, existsSync, statSync, readFileSync } from "fs";
-import { detectProjectName } from "./project";
+import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { $ } from 'bun';
+import { detectProjectName } from './project';
 
 // --- Types ---
 
@@ -33,7 +33,7 @@ export interface IntegrationResult {
  * Includes project name detection (git repo or directory name)
  */
 export async function extractTags(markdown: string): Promise<string[]> {
-  const tags = new Set<string>(["plannotator"]);
+  const tags = new Set<string>(['plannotator']);
 
   // Add project name tag (git repo name or directory fallback)
   const projectName = await detectProjectName();
@@ -42,8 +42,20 @@ export async function extractTags(markdown: string): Promise<string[]> {
   }
 
   const stopWords = new Set([
-    "the", "and", "for", "with", "this", "that", "from", "into",
-    "plan", "implementation", "overview", "phase", "step", "steps",
+    'the',
+    'and',
+    'for',
+    'with',
+    'this',
+    'that',
+    'from',
+    'into',
+    'plan',
+    'implementation',
+    'overview',
+    'phase',
+    'step',
+    'steps',
   ]);
 
   // Extract from first H1 title
@@ -51,7 +63,7 @@ export async function extractTags(markdown: string): Promise<string[]> {
   if (h1Match) {
     const titleWords = h1Match[1]
       .toLowerCase()
-      .replace(/[^\w\s-]/g, " ")
+      .replace(/[^\w\s-]/g, ' ')
       .split(/\s+/)
       .filter((word) => word.length > 2 && !stopWords.has(word));
     titleWords.slice(0, 3).forEach((word) => tags.add(word));
@@ -64,7 +76,7 @@ export async function extractTags(markdown: string): Promise<string[]> {
     const normalizedLang = lang.toLowerCase();
     if (
       !seenLangs.has(normalizedLang) &&
-      !["json", "yaml", "yml", "text", "txt", "markdown", "md"].includes(normalizedLang)
+      !['json', 'yaml', 'yml', 'text', 'txt', 'markdown', 'md'].includes(normalizedLang)
     ) {
       seenLangs.add(normalizedLang);
       tags.add(normalizedLang);
@@ -81,7 +93,7 @@ export async function extractTags(markdown: string): Promise<string[]> {
  */
 export function generateFrontmatter(tags: string[]): string {
   const now = new Date().toISOString();
-  const tagList = tags.map((t) => t.toLowerCase()).join(", ");
+  const tagList = tags.map((t) => t.toLowerCase()).join(', ');
   return `---
 created: ${now}
 source: plannotator
@@ -99,8 +111,8 @@ export function extractTitle(markdown: string): string {
     return h1Match[1]
       .trim()
       .replace(/[<>:"/\\|?*]/g, '') // Remove invalid filename chars
-      .replace(/\s+/g, ' ')          // Normalize whitespace
-      .slice(0, 50);                 // Limit length
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .slice(0, 50); // Limit length
   }
   return 'Plan';
 }
@@ -132,8 +144,20 @@ export function generateFilename(markdown: string, format?: string): string {
   const title = extractTitle(markdown);
   const now = new Date();
 
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+  ];
 
   const hour24 = now.getHours();
   const hour12 = hour24 % 12 || 12;
@@ -142,15 +166,15 @@ export function generateFilename(markdown: string, format?: string): string {
   const vars: Record<string, string> = {
     title,
     YYYY: String(now.getFullYear()),
-    MM:   String(now.getMonth() + 1).padStart(2, '0'),
-    DD:   String(now.getDate()).padStart(2, '0'),
-    Mon:  months[now.getMonth()],
-    D:    String(now.getDate()),
-    HH:   String(hour24).padStart(2, '0'),
-    h:    String(hour12),
-    hh:   String(hour12).padStart(2, '0'),
-    mm:   String(now.getMinutes()).padStart(2, '0'),
-    ss:   String(now.getSeconds()).padStart(2, '0'),
+    MM: String(now.getMonth() + 1).padStart(2, '0'),
+    DD: String(now.getDate()).padStart(2, '0'),
+    Mon: months[now.getMonth()],
+    D: String(now.getDate()),
+    HH: String(hour24).padStart(2, '0'),
+    h: String(hour12),
+    hh: String(hour12).padStart(2, '0'),
+    mm: String(now.getMinutes()).padStart(2, '0'),
+    ss: String(now.getSeconds()).padStart(2, '0'),
     ampm,
   };
 
@@ -158,7 +182,10 @@ export function generateFilename(markdown: string, format?: string): string {
   const result = template.replace(/\{(\w+)\}/g, (match, key) => vars[key] ?? match);
 
   // Sanitize: remove characters invalid in filenames
-  const sanitized = result.replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, ' ').trim();
+  const sanitized = result
+    .replace(/[<>:"/\\|?*]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 
   return sanitized.endsWith('.md') ? sanitized : `${sanitized}.md`;
 }
@@ -171,28 +198,28 @@ export function generateFilename(markdown: string, format?: string): string {
  */
 export function detectObsidianVaults(): string[] {
   try {
-    const home = process.env.HOME || process.env.USERPROFILE || "";
+    const home = process.env.HOME || process.env.USERPROFILE || '';
     let configPath: string;
 
     // Platform-specific config locations
-    if (process.platform === "darwin") {
-      configPath = join(home, "Library/Application Support/obsidian/obsidian.json");
-    } else if (process.platform === "win32") {
-      const appData = process.env.APPDATA || join(home, "AppData/Roaming");
-      configPath = join(appData, "obsidian/obsidian.json");
+    if (process.platform === 'darwin') {
+      configPath = join(home, 'Library/Application Support/obsidian/obsidian.json');
+    } else if (process.platform === 'win32') {
+      const appData = process.env.APPDATA || join(home, 'AppData/Roaming');
+      configPath = join(appData, 'obsidian/obsidian.json');
     } else {
       // Linux
-      configPath = join(home, ".config/obsidian/obsidian.json");
+      configPath = join(home, '.config/obsidian/obsidian.json');
     }
 
     if (!existsSync(configPath)) {
       return [];
     }
 
-    const configContent = readFileSync(configPath, "utf-8");
+    const configContent = readFileSync(configPath, 'utf-8');
     const config = JSON.parse(configContent);
 
-    if (!config.vaults || typeof config.vaults !== "object") {
+    if (!config.vaults || typeof config.vaults !== 'object') {
       return [];
     }
 
@@ -222,8 +249,8 @@ export async function saveToObsidian(config: ObsidianConfig): Promise<Integratio
     let normalizedVault = vaultPath.trim();
 
     // Expand ~ to home directory (Unix/macOS)
-    if (normalizedVault.startsWith("~")) {
-      const home = process.env.HOME || process.env.USERPROFILE || "";
+    if (normalizedVault.startsWith('~')) {
+      const home = process.env.HOME || process.env.USERPROFILE || '';
       normalizedVault = join(home, normalizedVault.slice(1));
     }
 
@@ -238,7 +265,7 @@ export async function saveToObsidian(config: ObsidianConfig): Promise<Integratio
     }
 
     // Build target folder path
-    const folderName = folder.trim() || "plannotator";
+    const folderName = folder.trim() || 'plannotator';
     const targetFolder = join(normalizedVault, folderName);
 
     // Create folder if it doesn't exist
@@ -258,7 +285,7 @@ export async function saveToObsidian(config: ObsidianConfig): Promise<Integratio
 
     return { success: true, path: filePath };
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = err instanceof Error ? err.message : 'Unknown error';
     return { success: false, error: message };
   }
 }
@@ -275,7 +302,7 @@ export async function saveToBear(config: BearConfig): Promise<IntegrationResult>
     // Extract title and tags
     const title = extractTitle(plan);
     const tags = await extractTags(plan);
-    const hashtags = tags.map(t => `#${t}`).join(' ');
+    const hashtags = tags.map((t) => `#${t}`).join(' ');
 
     // Append hashtags to content
     const content = `${plan}\n\n${hashtags}`;
@@ -288,7 +315,7 @@ export async function saveToBear(config: BearConfig): Promise<IntegrationResult>
 
     return { success: true };
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
+    const message = err instanceof Error ? err.message : 'Unknown error';
     return { success: false, error: message };
   }
 }

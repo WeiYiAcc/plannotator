@@ -16,7 +16,7 @@ export function getItem(key: string): string | null {
   try {
     const match = document.cookie.match(new RegExp(`(?:^|; )${escapeRegex(key)}=([^;]*)`));
     return match ? decodeURIComponent(match[1]) : null;
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -27,8 +27,9 @@ export function getItem(key: string): string | null {
 export function setItem(key: string, value: string): void {
   try {
     const encoded = encodeURIComponent(value);
+    // biome-ignore lint/suspicious/noDocumentCookie: intentional cookie-based storage (see module docstring)
     document.cookie = `${key}=${encoded}; path=/; max-age=${ONE_YEAR_SECONDS}; SameSite=Lax`;
-  } catch (e) {
+  } catch {
     // Cookie not available
   }
 }
@@ -38,8 +39,9 @@ export function setItem(key: string, value: string): void {
  */
 export function removeItem(key: string): void {
   try {
+    // biome-ignore lint/suspicious/noDocumentCookie: intentional cookie-based storage (see module docstring)
     document.cookie = `${key}=; path=/; max-age=0`;
-  } catch (e) {
+  } catch {
     // Cookie not available
   }
 }

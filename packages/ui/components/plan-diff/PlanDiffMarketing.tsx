@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import type React from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { markPlanDiffMarketingSeen } from '../../utils/planDiffMarketing';
 
@@ -7,8 +8,8 @@ const FEEDBACK_URL = 'https://github.com/backnotprop/plannotator/issues';
 
 const VIDEO_URLS: Record<string, string> = {
   'claude-code': 'https://youtu.be/uIWkFCg60Lk',
-  'opencode': 'https://youtu.be/uIWkFCg60Lk',
-  'pi': 'https://youtu.be/uIWkFCg60Lk',
+  opencode: 'https://youtu.be/uIWkFCg60Lk',
+  pi: 'https://youtu.be/uIWkFCg60Lk',
 };
 const DEFAULT_VIDEO_URL = 'https://youtu.be/uIWkFCg60Lk';
 
@@ -40,8 +41,18 @@ export const PlanDiffMarketing: React.FC<PlanDiffMarketingProps> = ({
         <div className="p-5 border-b border-border">
           <div className="flex items-center gap-2 mb-2">
             <div className="p-1.5 rounded-lg bg-primary/15">
-              <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+              <svg
+                className="w-5 h-5 text-primary"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.5}
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5"
+                />
               </svg>
             </div>
             <h3 className="font-semibold text-base">New: Plan Diff Mode</h3>
@@ -57,8 +68,18 @@ export const PlanDiffMarketing: React.FC<PlanDiffMarketingProps> = ({
           {imageError ? (
             <div className="w-full aspect-[16/7] rounded-lg border border-border bg-muted/50 flex items-center justify-center">
               <div className="text-center text-muted-foreground">
-                <svg className="w-8 h-8 mx-auto mb-2 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                <svg
+                  className="w-8 h-8 mx-auto mb-2 opacity-40"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={1}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"
+                  />
                 </svg>
                 <p className="text-xs">Plan Diff screenshot</p>
               </div>
@@ -80,7 +101,10 @@ export const PlanDiffMarketing: React.FC<PlanDiffMarketingProps> = ({
               </div>
               <p>
                 <span className="font-medium">Two view modes</span>{' '}
-                <span className="text-muted-foreground">— a rendered visual diff with color-coded borders for quick scanning, and a raw markdown diff for precision.</span>
+                <span className="text-muted-foreground">
+                  — a rendered visual diff with color-coded borders for quick scanning, and a raw
+                  markdown diff for precision.
+                </span>
               </p>
             </div>
             <div className="flex gap-2.5">
@@ -89,7 +113,10 @@ export const PlanDiffMarketing: React.FC<PlanDiffMarketingProps> = ({
               </div>
               <p>
                 <span className="font-medium">Version history</span>{' '}
-                <span className="text-muted-foreground">— compare against any previous version from the sidebar. Plans are automatically versioned as your agent iterates.</span>
+                <span className="text-muted-foreground">
+                  — compare against any previous version from the sidebar. Plans are automatically
+                  versioned as your agent iterates.
+                </span>
               </p>
             </div>
           </div>
@@ -106,15 +133,28 @@ export const PlanDiffMarketing: React.FC<PlanDiffMarketingProps> = ({
                 <path d="M8 5v14l11-7z" />
               </svg>
             </div>
-            <span className="text-sm font-medium text-foreground/90">Watch Video Demo of Plan Diff</span>
-            <svg className="w-3.5 h-3.5 text-muted-foreground ml-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+            <span className="text-sm font-medium text-foreground/90">
+              Watch Video Demo of Plan Diff
+            </span>
+            <svg
+              className="w-3.5 h-3.5 text-muted-foreground ml-auto"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"
+              />
             </svg>
           </a>
 
           {/* Feedback callout */}
           <p className="text-xs text-muted-foreground leading-relaxed">
-            This is the first release of Plan Diff — rough edges are expected, especially around plan name matching across sessions. If something feels off or you have ideas, open an{' '}
+            This is the first release of Plan Diff — rough edges are expected, especially around
+            plan name matching across sessions. If something feels off or you have ideas, open an{' '}
             <a
               href={FEEDBACK_URL}
               target="_blank"
@@ -122,7 +162,8 @@ export const PlanDiffMarketing: React.FC<PlanDiffMarketingProps> = ({
               className="text-primary underline underline-offset-2 hover:text-primary/80"
             >
               issue
-            </a>. Let's make this better together.
+            </a>
+            . Let's make this better together.
           </p>
         </div>
 
@@ -137,6 +178,6 @@ export const PlanDiffMarketing: React.FC<PlanDiffMarketingProps> = ({
         </div>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };

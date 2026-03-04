@@ -1,5 +1,5 @@
-import React from 'react';
-import { ToolbarState } from '../hooks/useAnnotationToolbar';
+import type React from 'react';
+import type { ToolbarState } from '../hooks/useAnnotationToolbar';
 import { useTabIndent } from '../hooks/useTabIndent';
 import { formatLineRange } from '../utils/formatLineRange';
 
@@ -52,14 +52,22 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
       <div className="w-80">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs text-muted-foreground">
-            {isEditing ? 'Edit annotation' : formatLineRange(toolbarState.range.start, toolbarState.range.end)}
+            {isEditing
+              ? 'Edit annotation'
+              : formatLineRange(toolbarState.range.start, toolbarState.range.end)}
           </span>
           <button
             onClick={onCancel}
             className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
             title="Cancel"
           >
-            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              className="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -71,11 +79,14 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
           placeholder="Leave feedback..."
           className="w-full px-3 py-2 bg-muted rounded-lg text-xs resize-none focus:outline-none focus:ring-1 focus:ring-primary/50"
           rows={3}
-          autoFocus
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
               onDismiss();
-            } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
+            } else if (
+              e.key === 'Enter' &&
+              (e.metaKey || e.ctrlKey) &&
+              !e.nativeEvent.isComposing
+            ) {
               onSubmit();
             }
           }}
@@ -91,8 +102,18 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
                 className="p-0.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                 title="Expand editor"
               >
-                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5" />
+                <svg
+                  className="w-3 h-3"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5v-4m0 4h-4m4 0l-5-5"
+                  />
                 </svg>
               </button>
             </div>
@@ -102,12 +123,15 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
               placeholder="Enter code suggestion..."
               className="suggested-code-input"
               rows={4}
-              autoFocus
               spellCheck={false}
               onKeyDown={(e) => {
                 if (e.key === 'Tab') {
                   handleTabIndent(e);
-                } else if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
+                } else if (
+                  e.key === 'Enter' &&
+                  (e.metaKey || e.ctrlKey) &&
+                  !e.nativeEvent.isComposing
+                ) {
                   onSubmit();
                 }
               }}
@@ -118,7 +142,13 @@ export const AnnotationToolbar: React.FC<AnnotationToolbarProps> = ({
             onClick={() => setShowSuggestedCode(true)}
             className="mt-2 text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
           >
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg
+              className="w-3 h-3"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth={2}
+            >
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
             </svg>
             Add suggested code

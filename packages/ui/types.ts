@@ -91,6 +91,6 @@ export interface SelectedLineRange {
 export interface VaultNode {
   name: string;
   path: string; // relative path within vault
-  type: "file" | "folder";
+  type: 'file' | 'folder';
   children?: VaultNode[];
 }

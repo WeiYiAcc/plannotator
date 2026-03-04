@@ -11,14 +11,14 @@
  *   PLANNOTATOR_PORT   - Fixed port to use (default: random locally, 19432 for remote)
  */
 
-import { isRemoteSession, getServerPort } from "./remote";
-import { getRepoInfo } from "./repo";
-import { handleImageRequest, handleUploadRequest } from "./shared-handlers";
+import { getServerPort, isRemoteSession } from './remote';
+import { getRepoInfo } from './repo';
+import { handleImageRequest, handleUploadRequest } from './shared-handlers';
 
+export { openBrowser } from './browser';
 // Re-export utilities
-export { isRemoteSession, getServerPort } from "./remote";
-export { openBrowser } from "./browser";
-export { handleServerReady as handleAnnotateServerReady } from "./shared-handlers";
+export { getServerPort, isRemoteSession } from './remote';
+export { handleServerReady as handleAnnotateServerReady } from './shared-handlers';
 
 // --- Types ---
 
@@ -30,7 +30,7 @@ export interface AnnotateServerOptions {
   /** HTML content to serve for the UI */
   htmlContent: string;
   /** Origin identifier for UI customization */
-  origin?: "opencode" | "claude-code";
+  origin?: 'opencode' | 'claude-code';
   /** Whether URL sharing is enabled (default: true) */
   sharingEnabled?: boolean;
   /** Custom base URL for share links */
@@ -69,7 +69,7 @@ const RETRY_DELAY_MS = 500;
  * - Port conflict retries
  */
 export async function startAnnotateServer(
-  options: AnnotateServerOptions
+  options: AnnotateServerOptions,
 ): Promise<AnnotateServerResult> {
   const {
     markdown,
@@ -88,10 +88,7 @@ export async function startAnnotateServer(
   const repoInfo = await getRepoInfo();
 
   // Decision promise
-  let resolveDecision: (result: {
-    feedback: string;
-    annotations: unknown[];
-  }) => void;
+  let resolveDecision: (result: { feedback: string; annotations: unknown[] }) => void;
   const decisionPromise = new Promise<{
     feedback: string;
     annotations: unknown[];
@@ -111,11 +108,11 @@ export async function startAnnotateServer(
           const url = new URL(req.url);
 
           // API: Get plan content (reuse /api/plan so the plan editor UI works)
-          if (url.pathname === "/api/plan" && req.method === "GET") {
+          if (url.pathname === '/api/plan' && req.method === 'GET') {
             return Response.json({
               plan: markdown,
               origin,
-              mode: "annotate",
+              mode: 'annotate',
               filePath,
               sharingEnabled,
               shareBaseUrl,
@@ -124,17 +121,17 @@ export async function startAnnotateServer(
           }
 
           // API: Serve images (local paths or temp uploads)
-          if (url.pathname === "/api/image") {
+          if (url.pathname === '/api/image') {
             return handleImageRequest(url);
           }
 
           // API: Upload image -> save to temp -> return path
-          if (url.pathname === "/api/upload" && req.method === "POST") {
+          if (url.pathname === '/api/upload' && req.method === 'POST') {
             return handleUploadRequest(req);
           }
 
           // API: Submit annotation feedback
-          if (url.pathname === "/api/feedback" && req.method === "POST") {
+          if (url.pathname === '/api/feedback' && req.method === 'POST') {
             try {
               const body = (await req.json()) as {
                 feedback: string;
@@ -142,31 +139,27 @@ export async function startAnnotateServer(
               };
 
               resolveDecision({
-                feedback: body.feedback || "",
+                feedback: body.feedback || '',
                 annotations: body.annotations || [],
               });
 
               return Response.json({ ok: true });
             } catch (err) {
-              const message =
-                err instanceof Error
-                  ? err.message
-                  : "Failed to process feedback";
+              const message = err instanceof Error ? err.message : 'Failed to process feedback';
               return Response.json({ error: message }, { status: 500 });
             }
           }
 
           // Serve embedded HTML for all other routes (SPA)
           return new Response(htmlContent, {
-            headers: { "Content-Type": "text/html" },
+            headers: { 'Content-Type': 'text/html' },
           });
         },
       });
 
       break; // Success, exit retry loop
     } catch (err: unknown) {
-      const isAddressInUse =
-        err instanceof Error && err.message.includes("EADDRINUSE");
+      const isAddressInUse = err instanceof Error && err.message.includes('EADDRINUSE');
 
       if (isAddressInUse && attempt < MAX_RETRIES) {
         await Bun.sleep(RETRY_DELAY_MS);
@@ -174,12 +167,8 @@ export async function startAnnotateServer(
       }
 
       if (isAddressInUse) {
-        const hint = isRemote
-          ? " (set PLANNOTATOR_PORT to use different port)"
-          : "";
-        throw new Error(
-          `Port ${configuredPort} in use after ${MAX_RETRIES} retries${hint}`
-        );
+        const hint = isRemote ? ' (set PLANNOTATOR_PORT to use different port)' : '';
+        throw new Error(`Port ${configuredPort} in use after ${MAX_RETRIES} retries${hint}`);
       }
 
       throw err;
@@ -187,7 +176,7 @@ export async function startAnnotateServer(
   }
 
   if (!server) {
-    throw new Error("Failed to start server");
+    throw new Error('Failed to start server');
   }
 
   const serverUrl = `http://localhost:${server.port}`;

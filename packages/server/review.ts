@@ -9,17 +9,17 @@
  *   PLANNOTATOR_PORT   - Fixed port to use (default: random locally, 19432 for remote)
  */
 
-import { isRemoteSession, getServerPort } from "./remote";
-import { type DiffType, type GitContext, runGitDiff } from "./git";
-import { getRepoInfo } from "./repo";
-import { handleImageRequest, handleUploadRequest, handleAgentsRequest, handleServerReady } from "./shared-handlers";
-import type { OpencodeClient } from "./shared-handlers";
+import { type DiffType, type GitContext, runGitDiff } from './git';
+import { getServerPort, isRemoteSession } from './remote';
+import { getRepoInfo } from './repo';
+import type { OpencodeClient } from './shared-handlers';
+import { handleAgentsRequest, handleImageRequest, handleUploadRequest } from './shared-handlers';
 
+export { openBrowser } from './browser';
+export type { DiffOption, DiffType, GitContext } from './git';
 // Re-export utilities
-export { isRemoteSession, getServerPort } from "./remote";
-export { openBrowser } from "./browser";
-export { type DiffType, type DiffOption, type GitContext } from "./git";
-export { handleServerReady as handleReviewServerReady } from "./shared-handlers";
+export { getServerPort, isRemoteSession } from './remote';
+export { handleServerReady as handleReviewServerReady } from './shared-handlers';
 
 // --- Types ---
 
@@ -33,7 +33,7 @@ export interface ReviewServerOptions {
   /** HTML content to serve for the UI */
   htmlContent: string;
   /** Origin identifier for UI customization */
-  origin?: "opencode" | "claude-code";
+  origin?: 'opencode' | 'claude-code';
   /** Current diff type being displayed */
   diffType?: DiffType;
   /** Git context with branch info and available diff options */
@@ -78,15 +78,13 @@ const RETRY_DELAY_MS = 500;
  * - API routes (/api/diff, /api/feedback)
  * - Port conflict retries
  */
-export async function startReviewServer(
-  options: ReviewServerOptions
-): Promise<ReviewServerResult> {
+export async function startReviewServer(options: ReviewServerOptions): Promise<ReviewServerResult> {
   const { htmlContent, origin, gitContext, sharingEnabled = true, shareBaseUrl, onReady } = options;
 
   // Mutable state for diff switching
   let currentPatch = options.rawPatch;
   let currentGitRef = options.gitRef;
-  let currentDiffType: DiffType = options.diffType || "uncommitted";
+  let currentDiffType: DiffType = options.diffType || 'uncommitted';
   let currentError = options.error;
 
   const isRemote = isRemoteSession();
@@ -121,7 +119,7 @@ export async function startReviewServer(
           const url = new URL(req.url);
 
           // API: Get diff content
-          if (url.pathname === "/api/diff" && req.method === "GET") {
+          if (url.pathname === '/api/diff' && req.method === 'GET') {
             return Response.json({
               rawPatch: currentPatch,
               gitRef: currentGitRef,
@@ -136,20 +134,17 @@ export async function startReviewServer(
           }
 
           // API: Switch diff type
-          if (url.pathname === "/api/diff/switch" && req.method === "POST") {
+          if (url.pathname === '/api/diff/switch' && req.method === 'POST') {
             try {
               const body = (await req.json()) as { diffType: DiffType };
               const newDiffType = body.diffType;
 
               if (!newDiffType) {
-                return Response.json(
-                  { error: "Missing diffType" },
-                  { status: 400 }
-                );
+                return Response.json({ error: 'Missing diffType' }, { status: 400 });
               }
 
               // Run the new diff
-              const defaultBranch = gitContext?.defaultBranch || "main";
+              const defaultBranch = gitContext?.defaultBranch || 'main';
               const result = await runGitDiff(newDiffType, defaultBranch);
 
               // Update state
@@ -165,29 +160,28 @@ export async function startReviewServer(
                 ...(currentError && { error: currentError }),
               });
             } catch (err) {
-              const message =
-                err instanceof Error ? err.message : "Failed to switch diff";
+              const message = err instanceof Error ? err.message : 'Failed to switch diff';
               return Response.json({ error: message }, { status: 500 });
             }
           }
 
           // API: Serve images (local paths or temp uploads)
-          if (url.pathname === "/api/image") {
+          if (url.pathname === '/api/image') {
             return handleImageRequest(url);
           }
 
           // API: Upload image -> save to temp -> return path
-          if (url.pathname === "/api/upload" && req.method === "POST") {
+          if (url.pathname === '/api/upload' && req.method === 'POST') {
             return handleUploadRequest(req);
           }
 
           // API: Get available agents (OpenCode only)
-          if (url.pathname === "/api/agents") {
+          if (url.pathname === '/api/agents') {
             return handleAgentsRequest(options.opencodeClient);
           }
 
           // API: Submit review feedback
-          if (url.pathname === "/api/feedback" && req.method === "POST") {
+          if (url.pathname === '/api/feedback' && req.method === 'POST') {
             try {
               const body = (await req.json()) as {
                 feedback: string;
@@ -196,30 +190,28 @@ export async function startReviewServer(
               };
 
               resolveDecision({
-                feedback: body.feedback || "",
+                feedback: body.feedback || '',
                 annotations: body.annotations || [],
                 agentSwitch: body.agentSwitch,
               });
 
               return Response.json({ ok: true });
             } catch (err) {
-              const message =
-                err instanceof Error ? err.message : "Failed to process feedback";
+              const message = err instanceof Error ? err.message : 'Failed to process feedback';
               return Response.json({ error: message }, { status: 500 });
             }
           }
 
           // Serve embedded HTML for all other routes (SPA)
           return new Response(htmlContent, {
-            headers: { "Content-Type": "text/html" },
+            headers: { 'Content-Type': 'text/html' },
           });
         },
       });
 
       break; // Success, exit retry loop
     } catch (err: unknown) {
-      const isAddressInUse =
-        err instanceof Error && err.message.includes("EADDRINUSE");
+      const isAddressInUse = err instanceof Error && err.message.includes('EADDRINUSE');
 
       if (isAddressInUse && attempt < MAX_RETRIES) {
         await Bun.sleep(RETRY_DELAY_MS);
@@ -227,7 +219,7 @@ export async function startReviewServer(
       }
 
       if (isAddressInUse) {
-        const hint = isRemote ? " (set PLANNOTATOR_PORT to use different port)" : "";
+        const hint = isRemote ? ' (set PLANNOTATOR_PORT to use different port)' : '';
         throw new Error(`Port ${configuredPort} in use after ${MAX_RETRIES} retries${hint}`);
       }
 
@@ -236,7 +228,7 @@ export async function startReviewServer(
   }
 
   if (!server) {
-    throw new Error("Failed to start server");
+    throw new Error('Failed to start server');
   }
 
   const serverUrl = `http://localhost:${server.port}`;

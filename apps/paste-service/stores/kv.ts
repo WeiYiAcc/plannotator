@@ -1,4 +1,4 @@
-import type { PasteStore } from "../core/storage";
+import type { PasteStore } from '../core/storage';
 
 /**
  * Cloudflare KV-backed paste store.

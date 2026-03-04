@@ -23,7 +23,7 @@ diffs-container {
 }
 
 .diff-line-deletion {
-  background: oklch(0.65 0.20 25 / 0.12);
+  background: oklch(0.65 0.2 25 / 0.12);
 }
 
 .light .diff-line-addition {
@@ -31,7 +31,7 @@ diffs-container {
 }
 
 .light .diff-line-deletion {
-  background: oklch(0.65 0.20 25 / 0.15);
+  background: oklch(0.65 0.2 25 / 0.15);
 }
 
 /* Review comment thread styling */
@@ -50,7 +50,9 @@ diffs-container {
     0 4px 12px -2px rgba(0, 0, 0, 0.15),
     0 2px 4px -1px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  transition: transform 150ms ease, box-shadow 150ms ease;
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .review-comment:hover {
@@ -98,7 +100,9 @@ diffs-container {
   padding: 0.25rem;
   border-radius: 0.25rem;
   color: var(--muted-foreground);
-  transition: color 150ms, background 150ms;
+  transition:
+    color 150ms,
+    background 150ms;
 }
 
 .review-comment-action:hover {
@@ -108,7 +112,7 @@ diffs-container {
 
 .review-comment-action.destructive:hover {
   color: var(--destructive);
-  background: oklch(0.65 0.20 25 / 0.1);
+  background: oklch(0.65 0.2 25 / 0.1);
 }
 
 .review-comment-body {
@@ -174,7 +178,7 @@ diffs-container {
 
 .hover-add-comment:hover {
   opacity: 1;
-  background: oklch(0.70 0.20 280);
+  background: oklch(0.7 0.2 280);
 }
 
 /* File tree styling */
@@ -232,7 +236,9 @@ diffs-container {
   background: var(--popover);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow:
+    0 10px 25px -5px rgba(0, 0, 0, 0.2),
+    0 8px 10px -6px rgba(0, 0, 0, 0.1);
   padding: 0.5rem;
 }
 
@@ -259,7 +265,7 @@ diffs-container {
 }
 
 .review-toolbar-btn.primary:hover {
-  background: oklch(0.70 0.20 280);
+  background: oklch(0.7 0.2 280);
 }
 
 /* Export modal code blocks */
@@ -354,13 +360,13 @@ diffs-container {
 }
 
 .light .suggestion-block {
-  border-color: oklch(0.45 0.20 150 / 0.3);
+  border-color: oklch(0.45 0.2 150 / 0.3);
   border-left-color: var(--success);
 }
 
 .light .suggestion-block-header {
-  background: oklch(0.45 0.20 150 / 0.06);
-  border-bottom-color: oklch(0.45 0.20 150 / 0.12);
+  background: oklch(0.45 0.2 150 / 0.06);
+  border-bottom-color: oklch(0.45 0.2 150 / 0.12);
 }
 
 /* Suggestion modal original code pane */
@@ -399,7 +405,7 @@ diffs-container {
 }
 
 .suggestion-diff-line.removed {
-  background: oklch(0.65 0.20 25 / 0.15);
+  background: oklch(0.65 0.2 25 / 0.15);
 }
 
 .suggestion-diff-line.added {
@@ -414,7 +420,7 @@ diffs-container {
 }
 
 .suggestion-diff-line.removed .suggestion-diff-indicator {
-  color: oklch(0.65 0.20 25);
+  color: oklch(0.65 0.2 25);
 }
 
 .suggestion-diff-line.added .suggestion-diff-indicator {
@@ -426,22 +432,30 @@ diffs-container {
 }
 
 .light .suggestion-diff-line.removed {
-  background: oklch(0.65 0.20 25 / 0.1);
+  background: oklch(0.65 0.2 25 / 0.1);
 }
 
 .light .suggestion-diff-line.added {
-  background: oklch(0.45 0.20 150 / 0.1);
+  background: oklch(0.45 0.2 150 / 0.1);
 }
 
 /* Toast animations */
 @keyframes fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slide-in-from-bottom-2 {
-  from { transform: translateY(0.5rem) translateX(-50%); }
-  to { transform: translateY(0) translateX(-50%); }
+  from {
+    transform: translateY(0.5rem) translateX(-50%);
+  }
+  to {
+    transform: translateY(0) translateX(-50%);
+  }
 }
 
 .animate-in {

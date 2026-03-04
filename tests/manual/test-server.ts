@@ -11,13 +11,13 @@
  * Reads plan from stdin if provided, otherwise uses a sample plan.
  */
 
-import { startPlannotatorServer, handleServerReady } from "@plannotator/server";
+import { handleServerReady, startPlannotatorServer } from '@plannotator/server';
 
-// @ts-ignore - Bun import attribute for text
-import html from "../../apps/hook/dist/index.html" with { type: "text" };
+// @ts-expect-error - Bun import attribute for text
+import html from '../../apps/hook/dist/index.html' with { type: 'text' };
 
-const origin = process.argv[2] || "claude-code";
-const sharingEnabled = process.env.PLANNOTATOR_SHARE !== "disabled";
+const origin = process.argv[2] || 'claude-code';
+const sharingEnabled = process.env.PLANNOTATOR_SHARE !== 'disabled';
 
 // Use sample plan (stdin reading was blocking)
 const plan = `# Test Plan: Sample Feature

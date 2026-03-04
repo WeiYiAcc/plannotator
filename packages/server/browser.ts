@@ -2,30 +2,27 @@
  * Cross-platform browser opening utility
  */
 
-import { $ } from "bun";
-import os from "node:os";
+import os from 'node:os';
+import { $ } from 'bun';
 
 /**
  * Check if running in WSL (Windows Subsystem for Linux)
  */
 async function isWSL(): Promise<boolean> {
-  if (process.platform !== "linux") {
+  if (process.platform !== 'linux') {
     return false;
   }
 
-  if (os.release().toLowerCase().includes("microsoft")) {
+  if (os.release().toLowerCase().includes('microsoft')) {
     return true;
   }
 
   // Fallback: check /proc/version for WSL signature (if available)
   try {
-    const file = Bun.file("/proc/version");
+    const file = Bun.file('/proc/version');
     if (await file.exists()) {
       const content = await file.text();
-      return (
-        content.toLowerCase().includes("wsl") ||
-        content.toLowerCase().includes("microsoft")
-      );
+      return content.toLowerCase().includes('wsl') || content.toLowerCase().includes('microsoft');
     }
   } catch {
     // Ignore errors reading /proc/version
@@ -50,18 +47,18 @@ export async function openBrowser(url: string): Promise<boolean> {
 
     if (browser) {
       const plannotatorBrowser = process.env.PLANNOTATOR_BROWSER;
-      if (plannotatorBrowser && platform === "darwin") {
+      if (plannotatorBrowser && platform === 'darwin') {
         await $`open -a ${plannotatorBrowser} ${url}`.quiet();
-      } else if ((platform === "win32" || wsl) && plannotatorBrowser) {
+      } else if ((platform === 'win32' || wsl) && plannotatorBrowser) {
         await $`cmd.exe /c start "" ${plannotatorBrowser} ${url}`.quiet();
       } else {
         await $`${browser} ${url}`.quiet();
       }
     } else {
       // Default system browser
-      if (platform === "win32" || wsl) {
+      if (platform === 'win32' || wsl) {
         await $`cmd.exe /c start ${url}`.quiet();
-      } else if (platform === "darwin") {
+      } else if (platform === 'darwin') {
         await $`open ${url}`.quiet();
       } else {
         await $`xdg-open ${url}`.quiet();

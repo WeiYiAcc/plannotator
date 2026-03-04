@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 declare const __APP_VERSION__: string;
 
@@ -45,9 +45,7 @@ export function useUpdateCheck(): UpdateInfo | null {
   useEffect(() => {
     const checkForUpdates = async () => {
       try {
-        const currentVersion = typeof __APP_VERSION__ !== 'undefined'
-          ? __APP_VERSION__
-          : '0.0.0';
+        const currentVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.0.0';
 
         // Debug: ?preview-update=0.5.0 simulates an update to that version
         const urlParams = new URLSearchParams(window.location.search);

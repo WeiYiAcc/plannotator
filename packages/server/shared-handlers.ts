@@ -5,9 +5,9 @@
  * shared across all three servers (plan, review, annotate).
  */
 
-import { mkdirSync } from "fs";
-import { validateImagePath, validateUploadExtension, UPLOAD_DIR } from "./image";
-import { openBrowser } from "./browser";
+import { mkdirSync } from 'node:fs';
+import { openBrowser } from './browser';
+import { UPLOAD_DIR, validateImagePath, validateUploadExtension } from './image';
 
 // --- Types ---
 
@@ -29,9 +29,9 @@ export interface OpencodeClient {
 
 /** Serve images from local paths or temp uploads */
 export async function handleImageRequest(url: URL): Promise<Response> {
-  const imagePath = url.searchParams.get("path");
+  const imagePath = url.searchParams.get('path');
   if (!imagePath) {
-    return new Response("Missing path parameter", { status: 400 });
+    return new Response('Missing path parameter', { status: 400 });
   }
   const validation = validateImagePath(imagePath);
   if (!validation.valid) {
@@ -40,11 +40,11 @@ export async function handleImageRequest(url: URL): Promise<Response> {
   try {
     const file = Bun.file(validation.resolved);
     if (!(await file.exists())) {
-      return new Response("File not found", { status: 404 });
+      return new Response('File not found', { status: 404 });
     }
     return new Response(file);
   } catch {
-    return new Response("Failed to read file", { status: 500 });
+    return new Response('Failed to read file', { status: 500 });
   }
 }
 
@@ -52,9 +52,9 @@ export async function handleImageRequest(url: URL): Promise<Response> {
 export async function handleUploadRequest(req: Request): Promise<Response> {
   try {
     const formData = await req.formData();
-    const file = formData.get("file") as File;
+    const file = formData.get('file') as File;
     if (!file) {
-      return new Response("No file provided", { status: 400 });
+      return new Response('No file provided', { status: 400 });
     }
 
     const extResult = validateUploadExtension(file.name);
@@ -67,16 +67,13 @@ export async function handleUploadRequest(req: Request): Promise<Response> {
     await Bun.write(tempPath, file);
     return Response.json({ path: tempPath, originalName: file.name });
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Upload failed";
+    const message = err instanceof Error ? err.message : 'Upload failed';
     return Response.json({ error: message }, { status: 500 });
   }
 }
 
 /** List available agents (OpenCode only) */
-export async function handleAgentsRequest(
-  opencodeClient?: OpencodeClient
-): Promise<Response> {
+export async function handleAgentsRequest(opencodeClient?: OpencodeClient): Promise<Response> {
   if (!opencodeClient) {
     return Response.json({ agents: [] });
   }
@@ -84,12 +81,12 @@ export async function handleAgentsRequest(
   try {
     const result = await opencodeClient.app.agents({});
     const agents = (result.data ?? [])
-      .filter((a) => a.mode === "primary" && !a.hidden)
+      .filter((a) => a.mode === 'primary' && !a.hidden)
       .map((a) => ({ id: a.name, name: a.name, description: a.description }));
 
     return Response.json({ agents });
   } catch {
-    return Response.json({ agents: [], error: "Failed to fetch agents" });
+    return Response.json({ agents: [], error: 'Failed to fetch agents' });
   }
 }
 
@@ -97,7 +94,7 @@ export async function handleAgentsRequest(
 export async function handleServerReady(
   url: string,
   isRemote: boolean,
-  _port: number
+  _port: number,
 ): Promise<void> {
   if (!isRemote) {
     await openBrowser(url);

@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import type { Block, Annotation } from '../types';
+import type React from 'react';
+import { useCallback, useMemo, useState } from 'react';
+import type { Annotation, Block } from '../types';
 import {
   buildTocHierarchy,
   getAnnotationCountBySection,
@@ -67,7 +68,7 @@ function TocItemComponent({
             </svg>
           </button>
         )}
-        
+
         <button
           type="button"
           onClick={() => onNavigate(item.id)}
@@ -84,9 +85,7 @@ function TocItemComponent({
           aria-current={isActive ? 'location' : undefined}
         >
           <span className="flex items-center justify-between gap-2">
-            <span className="flex-1 line-clamp-2 leading-normal">
-              {item.content}
-            </span>
+            <span className="flex-1 line-clamp-2 leading-normal">{item.content}</span>
             {item.annotationCount > 0 && (
               <span
                 className="flex-shrink-0 bg-accent text-accent-foreground rounded-full w-5 h-5 flex items-center justify-center text-[10px] font-medium"
@@ -152,27 +151,27 @@ export function TableOfContents({
   // Calculate annotation counts per section
   const annotationCounts = useMemo(
     () => getAnnotationCountBySection(blocks, annotations),
-    [blocks, annotations]
+    [blocks, annotations],
   );
 
   // Build hierarchical TOC structure
   const tocItems = useMemo(
     () => buildTocHierarchy(blocks, annotationCounts),
-    [blocks, annotationCounts]
+    [blocks, annotationCounts],
   );
 
   // Handle navigation with smooth scroll
   const handleNavigate = useCallback(
     (blockId: string) => {
       onNavigate(blockId);
-      
+
       // Find target element and scroll to it
       const target = document.querySelector(`[data-block-id="${blockId}"]`);
       if (target) {
         // Find the scrollable main container
         const scrollContainer = document.querySelector('main');
         if (!scrollContainer) return;
-        
+
         // Account for sticky header (48px = h-12)
         const headerOffset = 80;
         const containerRect = scrollContainer.getBoundingClientRect();
@@ -187,7 +186,7 @@ export function TableOfContents({
         });
       }
     },
-    [onNavigate]
+    [onNavigate],
   );
 
   if (tocItems.length === 0) {
@@ -196,7 +195,7 @@ export function TableOfContents({
 
   return (
     <nav
-      className={className || "bg-card/50 backdrop-blur-sm border-r border-border overflow-y-auto"}
+      className={className || 'bg-card/50 backdrop-blur-sm border-r border-border overflow-y-auto'}
       aria-label="Table of contents"
       style={style}
     >
@@ -210,8 +209,18 @@ export function TableOfContents({
                   onClick={onLinkedDocBack}
                   className="flex items-center gap-0.5 text-[10px] font-medium text-primary hover:text-primary/80 transition-colors"
                 >
-                  <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                  <svg
+                    className="w-2.5 h-2.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2.5}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18"
+                    />
                   </svg>
                   Back to plan
                 </button>

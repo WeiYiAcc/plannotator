@@ -6,11 +6,11 @@
  * add/remove changes into "modified" blocks for cleaner rendering.
  */
 
-import { diffLines, type Change } from "diff";
+import { type Change, diffLines } from 'diff';
 
 export interface PlanDiffBlock {
   /** What kind of change this block represents */
-  type: "added" | "removed" | "modified" | "unchanged";
+  type: 'added' | 'removed' | 'modified' | 'unchanged';
   /** The content for this block (new content for added/modified, old content for removed, full content for unchanged) */
   content: string;
   /** For 'modified' blocks: the old content that was replaced */
@@ -29,9 +29,9 @@ export interface PlanDiffStats {
  * Count lines in a string (handles trailing newline correctly).
  */
 function countLines(text: string): number {
-  const lines = text.split("\n");
+  const lines = text.split('\n');
   // diffLines often includes a trailing empty string from the final newline
-  if (lines.length > 0 && lines[lines.length - 1] === "") {
+  if (lines.length > 0 && lines[lines.length - 1] === '') {
     return lines.length - 1;
   }
   return lines.length;
@@ -46,7 +46,7 @@ function countLines(text: string): number {
  */
 export function computePlanDiff(
   oldText: string,
-  newText: string
+  newText: string,
 ): { blocks: PlanDiffBlock[]; stats: PlanDiffStats } {
   const changes: Change[] = diffLines(oldText, newText);
 
@@ -60,7 +60,7 @@ export function computePlanDiff(
     if (change.removed && next?.added) {
       // Adjacent remove + add = modification
       blocks.push({
-        type: "modified",
+        type: 'modified',
         content: next.value,
         oldContent: change.value,
         lines: countLines(next.value),
@@ -71,21 +71,21 @@ export function computePlanDiff(
       i++; // skip the next (add) since we consumed it
     } else if (change.added) {
       blocks.push({
-        type: "added",
+        type: 'added',
         content: change.value,
         lines: countLines(change.value),
       });
       stats.additions += countLines(change.value);
     } else if (change.removed) {
       blocks.push({
-        type: "removed",
+        type: 'removed',
         content: change.value,
         lines: countLines(change.value),
       });
       stats.deletions += countLines(change.value);
     } else {
       blocks.push({
-        type: "unchanged",
+        type: 'unchanged',
         content: change.value,
         lines: countLines(change.value),
       });

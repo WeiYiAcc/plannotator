@@ -11,19 +11,17 @@
  * Reuses parseMarkdownToBlocks() for rendering consistency with the plan view.
  */
 
-import React, { useEffect, useRef } from "react";
-import hljs from "highlight.js";
-import { parseMarkdownToBlocks } from "../../utils/parser";
-import type { Block } from "../../types";
-import type { PlanDiffBlock } from "../../utils/planDiffEngine";
+import hljs from 'highlight.js';
+import React, { useEffect, useRef } from 'react';
+import type { Block } from '../../types';
+import { parseMarkdownToBlocks } from '../../utils/parser';
+import type { PlanDiffBlock } from '../../utils/planDiffEngine';
 
 interface PlanCleanDiffViewProps {
   blocks: PlanDiffBlock[];
 }
 
-export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
-  blocks,
-}) => {
+export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({ blocks }) => {
   return (
     <div className="space-y-1">
       {blocks.map((block, index) => (
@@ -35,30 +33,25 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
 
 const DiffBlockRenderer: React.FC<{ block: PlanDiffBlock }> = ({ block }) => {
   switch (block.type) {
-    case "unchanged":
+    case 'unchanged':
       return (
         <div className="plan-diff-unchanged opacity-60 hover:opacity-100 transition-opacity">
           <MarkdownChunk content={block.content} />
         </div>
       );
 
-    case "added":
+    case 'added':
       return (
         <div className="plan-diff-added">
           <MarkdownChunk content={block.content} />
         </div>
       );
 
-    case "removed":
+    case 'removed':
       return <RemovedBlock content={block.content} />;
 
-    case "modified":
-      return (
-        <ModifiedBlock
-          content={block.content}
-          oldContent={block.oldContent!}
-        />
-      );
+    case 'modified':
+      return <ModifiedBlock content={block.content} oldContent={block.oldContent!} />;
 
     default:
       return null;
@@ -100,10 +93,7 @@ const ModifiedBlock: React.FC<{
  * Reuses the same visual output as the Viewer component.
  */
 const MarkdownChunk: React.FC<{ content: string }> = ({ content }) => {
-  const blocks = React.useMemo(
-    () => parseMarkdownToBlocks(content),
-    [content]
-  );
+  const blocks = React.useMemo(() => parseMarkdownToBlocks(content), [content]);
 
   return (
     <>
@@ -120,14 +110,14 @@ const MarkdownChunk: React.FC<{ content: string }> = ({ content }) => {
  */
 const SimpleBlockRenderer: React.FC<{ block: Block }> = ({ block }) => {
   switch (block.type) {
-    case "heading": {
+    case 'heading': {
       const Tag = `h${block.level || 1}` as keyof React.JSX.IntrinsicElements;
       const styles =
         {
-          1: "text-2xl font-bold mb-4 mt-6 first:mt-0 tracking-tight",
-          2: "text-xl font-semibold mb-3 mt-8 text-foreground/90",
-          3: "text-base font-semibold mb-2 mt-6 text-foreground/80",
-        }[block.level || 1] || "text-base font-semibold mb-2 mt-4";
+          1: 'text-2xl font-bold mb-4 mt-6 first:mt-0 tracking-tight',
+          2: 'text-xl font-semibold mb-3 mt-8 text-foreground/90',
+          3: 'text-base font-semibold mb-2 mt-6 text-foreground/80',
+        }[block.level || 1] || 'text-base font-semibold mb-2 mt-4';
 
       return (
         <Tag className={styles}>
@@ -136,21 +126,18 @@ const SimpleBlockRenderer: React.FC<{ block: Block }> = ({ block }) => {
       );
     }
 
-    case "blockquote":
+    case 'blockquote':
       return (
         <blockquote className="border-l-2 border-primary/50 pl-4 my-4 text-muted-foreground italic">
           <InlineMarkdown text={block.content} />
         </blockquote>
       );
 
-    case "list-item": {
+    case 'list-item': {
       const indent = (block.level || 0) * 1.25;
       const isCheckbox = block.checked !== undefined;
       return (
-        <div
-          className="flex gap-3 my-1.5"
-          style={{ marginLeft: `${indent}rem` }}
-        >
+        <div className="flex gap-3 my-1.5" style={{ marginLeft: `${indent}rem` }}>
           <span className="select-none shrink-0 flex items-center">
             {isCheckbox ? (
               block.checked ? (
@@ -181,15 +168,15 @@ const SimpleBlockRenderer: React.FC<{ block: Block }> = ({ block }) => {
             ) : (
               <span className="text-primary/60">
                 {(block.level || 0) === 0
-                  ? "\u2022"
+                  ? '\u2022'
                   : (block.level || 0) === 1
-                    ? "\u25E6"
-                    : "\u25AA"}
+                    ? '\u25E6'
+                    : '\u25AA'}
               </span>
             )}
           </span>
           <span
-            className={`text-sm leading-relaxed ${isCheckbox && block.checked ? "text-muted-foreground line-through" : "text-foreground/90"}`}
+            className={`text-sm leading-relaxed ${isCheckbox && block.checked ? 'text-muted-foreground line-through' : 'text-foreground/90'}`}
           >
             <InlineMarkdown text={block.content} />
           </span>
@@ -197,22 +184,26 @@ const SimpleBlockRenderer: React.FC<{ block: Block }> = ({ block }) => {
       );
     }
 
-    case "code":
+    case 'code':
       return <SimpleCodeBlock block={block} />;
 
-    case "hr":
+    case 'hr':
       return <hr className="border-border/30 my-8" />;
 
-    case "table": {
-      const lines = block.content.split('\n').filter(line => line.trim());
+    case 'table': {
+      const lines = block.content.split('\n').filter((line) => line.trim());
       if (lines.length === 0) return null;
       const parseRow = (line: string): string[] =>
-        line.replace(/^\|/, '').replace(/\|$/, '').split('|').map(cell => cell.trim());
+        line
+          .replace(/^\|/, '')
+          .replace(/\|$/, '')
+          .split('|')
+          .map((cell) => cell.trim());
       const headers = parseRow(lines[0]);
       const rows: string[][] = [];
       for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
-        if (/^[\|\-:\s]+$/.test(line)) continue;
+        if (/^[|\-:\s]+$/.test(line)) continue;
         rows.push(parseRow(line));
       }
       return (
@@ -221,7 +212,10 @@ const SimpleBlockRenderer: React.FC<{ block: Block }> = ({ block }) => {
             <thead>
               <tr className="border-b border-border">
                 {headers.map((header, i) => (
-                  <th key={i} className="px-3 py-2 text-left font-semibold text-foreground/90 bg-muted/30">
+                  <th
+                    key={i}
+                    className="px-3 py-2 text-left font-semibold text-foreground/90 bg-muted/30"
+                  >
                     <InlineMarkdown text={header} />
                   </th>
                 ))}
@@ -260,18 +254,18 @@ const SimpleCodeBlock: React.FC<{ block: Block }> = ({ block }) => {
 
   useEffect(() => {
     if (codeRef.current) {
-      codeRef.current.removeAttribute("data-highlighted");
-      codeRef.current.className = `hljs font-mono${block.language ? ` language-${block.language}` : ""}`;
+      codeRef.current.removeAttribute('data-highlighted');
+      codeRef.current.className = `hljs font-mono${block.language ? ` language-${block.language}` : ''}`;
       hljs.highlightElement(codeRef.current);
     }
-  }, [block.content, block.language]);
+  }, [block.language]);
 
   return (
     <div className="relative group my-5">
       <pre className="bg-muted/50 border border-border/30 rounded-lg overflow-x-auto">
         <code
           ref={codeRef}
-          className={`hljs font-mono${block.language ? ` language-${block.language}` : ""}`}
+          className={`hljs font-mono${block.language ? ` language-${block.language}` : ''}`}
         >
           {block.content}
         </code>
@@ -300,7 +294,7 @@ const InlineMarkdown: React.FC<{ text: string }> = ({ text }) => {
       parts.push(
         <strong key={key++} className="font-semibold">
           {match[1]}
-        </strong>
+        </strong>,
       );
       remaining = remaining.slice(match[0].length);
       continue;
@@ -316,12 +310,9 @@ const InlineMarkdown: React.FC<{ text: string }> = ({ text }) => {
     match = remaining.match(/^`([^`]+)`/);
     if (match) {
       parts.push(
-        <code
-          key={key++}
-          className="px-1.5 py-0.5 rounded bg-muted text-sm font-mono"
-        >
+        <code key={key++} className="px-1.5 py-0.5 rounded bg-muted text-sm font-mono">
           {match[1]}
-        </code>
+        </code>,
       );
       remaining = remaining.slice(match[0].length);
       continue;
@@ -338,7 +329,7 @@ const InlineMarkdown: React.FC<{ text: string }> = ({ text }) => {
           className="text-primary underline underline-offset-2 hover:text-primary/80"
         >
           {match[1]}
-        </a>
+        </a>,
       );
       remaining = remaining.slice(match[0].length);
       continue;

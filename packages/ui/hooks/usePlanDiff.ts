@@ -5,12 +5,8 @@
  * Consumes the version history API endpoints.
  */
 
-import { useState, useMemo, useCallback, useEffect } from "react";
-import {
-  computePlanDiff,
-  type PlanDiffBlock,
-  type PlanDiffStats,
-} from "../utils/planDiffEngine";
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { computePlanDiff, type PlanDiffBlock, type PlanDiffStats } from '../utils/planDiffEngine';
 
 export interface VersionInfo {
   version: number;
@@ -61,13 +57,11 @@ export interface UsePlanDiffReturn {
 export function usePlanDiff(
   currentPlan: string,
   initialPreviousPlan: string | null,
-  versionInfo: VersionInfo | null
+  versionInfo: VersionInfo | null,
 ): UsePlanDiffReturn {
-  const [diffBasePlan, setDiffBasePlan] = useState<string | null>(
-    initialPreviousPlan
-  );
+  const [diffBasePlan, setDiffBasePlan] = useState<string | null>(initialPreviousPlan);
   const [diffBaseVersion, setDiffBaseVersion] = useState<number | null>(
-    versionInfo && versionInfo.version > 1 ? versionInfo.version - 1 : null
+    versionInfo && versionInfo.version > 1 ? versionInfo.version - 1 : null,
   );
   const [versions, setVersions] = useState<VersionEntry[]>([]);
   const [projectPlans, setProjectPlans] = useState<ProjectPlan[]>([]);
@@ -80,14 +74,14 @@ export function usePlanDiff(
     if (initialPreviousPlan && !diffBasePlan) {
       setDiffBasePlan(initialPreviousPlan);
     }
-  }, [initialPreviousPlan]);
+  }, [initialPreviousPlan, diffBasePlan]);
 
   // Sync diffBaseVersion when versionInfo arrives after mount
   useEffect(() => {
     if (versionInfo && versionInfo.version > 1 && diffBaseVersion === null) {
       setDiffBaseVersion(versionInfo.version - 1);
     }
-  }, [versionInfo]);
+  }, [versionInfo, diffBaseVersion]);
 
   const hasPreviousVersion =
     versionInfo !== null && versionInfo.totalVersions > 1 && diffBasePlan !== null;
@@ -101,33 +95,30 @@ export function usePlanDiff(
   const diffBlocks = diffResult?.blocks ?? null;
   const diffStats = diffResult?.stats ?? null;
 
-  const selectBaseVersion = useCallback(
-    async (version: number) => {
-      setIsSelectingVersion(true);
-      setFetchingVersion(version);
-      try {
-        const res = await fetch(`/api/plan/version?v=${version}`);
-        if (!res.ok) {
-          alert(`Failed to load version ${version}.`);
-          return;
-        }
-        const data = (await res.json()) as { plan: string; version: number };
-        setDiffBasePlan(data.plan);
-        setDiffBaseVersion(version);
-      } catch {
+  const selectBaseVersion = useCallback(async (version: number) => {
+    setIsSelectingVersion(true);
+    setFetchingVersion(version);
+    try {
+      const res = await fetch(`/api/plan/version?v=${version}`);
+      if (!res.ok) {
         alert(`Failed to load version ${version}.`);
-      } finally {
-        setIsSelectingVersion(false);
-        setFetchingVersion(null);
+        return;
       }
-    },
-    []
-  );
+      const data = (await res.json()) as { plan: string; version: number };
+      setDiffBasePlan(data.plan);
+      setDiffBaseVersion(version);
+    } catch {
+      alert(`Failed to load version ${version}.`);
+    } finally {
+      setIsSelectingVersion(false);
+      setFetchingVersion(null);
+    }
+  }, []);
 
   const fetchVersions = useCallback(async () => {
     setIsLoadingVersions(true);
     try {
-      const res = await fetch("/api/plan/versions");
+      const res = await fetch('/api/plan/versions');
       if (!res.ok) return;
       const data = (await res.json()) as {
         project: string;
@@ -144,7 +135,7 @@ export function usePlanDiff(
 
   const fetchProjectPlans = useCallback(async () => {
     try {
-      const res = await fetch("/api/plan/history");
+      const res = await fetch('/api/plan/history');
       if (!res.ok) return;
       const data = (await res.json()) as {
         project: string;

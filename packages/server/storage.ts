@@ -5,10 +5,10 @@
  * Cross-platform: works on Windows, macOS, and Linux.
  */
 
-import { homedir } from "os";
-import { join } from "path";
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, existsSync } from "fs";
-import { sanitizeTag } from "./project";
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
+import { sanitizeTag } from './project';
 
 /**
  * Get the plan storage directory, creating it if needed.
@@ -20,11 +20,9 @@ export function getPlanDir(customPath?: string | null): string {
 
   if (customPath) {
     // Expand ~ to home directory
-    planDir = customPath.startsWith("~")
-      ? join(homedir(), customPath.slice(1))
-      : customPath;
+    planDir = customPath.startsWith('~') ? join(homedir(), customPath.slice(1)) : customPath;
   } else {
-    planDir = join(homedir(), ".plannotator", "plans");
+    planDir = join(homedir(), '.plannotator', 'plans');
   }
 
   mkdirSync(planDir, { recursive: true });
@@ -45,7 +43,7 @@ function extractFirstHeading(markdown: string): string | null {
  * Format: {sanitized-heading}-YYYY-MM-DD
  */
 export function generateSlug(plan: string): string {
-  const date = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+  const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
   const heading = extractFirstHeading(plan);
   const slug = heading ? sanitizeTag(heading) : null;
@@ -60,7 +58,7 @@ export function generateSlug(plan: string): string {
 export function savePlan(slug: string, content: string, customPath?: string | null): string {
   const planDir = getPlanDir(customPath);
   const filePath = join(planDir, `${slug}.md`);
-  writeFileSync(filePath, content, "utf-8");
+  writeFileSync(filePath, content, 'utf-8');
   return filePath;
 }
 
@@ -68,10 +66,14 @@ export function savePlan(slug: string, content: string, customPath?: string | nu
  * Save annotations to disk.
  * Returns the full path to the saved file.
  */
-export function saveAnnotations(slug: string, annotationsContent: string, customPath?: string | null): string {
+export function saveAnnotations(
+  slug: string,
+  annotationsContent: string,
+  customPath?: string | null,
+): string {
   const planDir = getPlanDir(customPath);
   const filePath = join(planDir, `${slug}.annotations.md`);
-  writeFileSync(filePath, annotationsContent, "utf-8");
+  writeFileSync(filePath, annotationsContent, 'utf-8');
   return filePath;
 }
 
@@ -82,21 +84,21 @@ export function saveAnnotations(slug: string, annotationsContent: string, custom
  */
 export function saveFinalSnapshot(
   slug: string,
-  status: "approved" | "denied",
+  status: 'approved' | 'denied',
   plan: string,
   annotations: string,
-  customPath?: string | null
+  customPath?: string | null,
 ): string {
   const planDir = getPlanDir(customPath);
   const filePath = join(planDir, `${slug}-${status}.md`);
 
   // Combine plan with annotations appended
   let content = plan;
-  if (annotations && annotations !== "No changes detected.") {
-    content += "\n\n---\n\n" + annotations;
+  if (annotations && annotations !== 'No changes detected.') {
+    content += `\n\n---\n\n${annotations}`;
   }
 
-  writeFileSync(filePath, content, "utf-8");
+  writeFileSync(filePath, content, 'utf-8');
   return filePath;
 }
 
@@ -108,7 +110,7 @@ export function saveFinalSnapshot(
  * Not affected by the customPath setting (that only affects decision saves).
  */
 export function getHistoryDir(project: string, slug: string): string {
-  const historyDir = join(homedir(), ".plannotator", "history", project, slug);
+  const historyDir = join(homedir(), '.plannotator', 'history', project, slug);
   mkdirSync(historyDir, { recursive: true });
   return historyDir;
 }
@@ -142,16 +144,16 @@ function getNextVersionNumber(historyDir: string): number {
 export function saveToHistory(
   project: string,
   slug: string,
-  plan: string
+  plan: string,
 ): { version: number; path: string; isNew: boolean } {
   const historyDir = getHistoryDir(project, slug);
   const nextVersion = getNextVersionNumber(historyDir);
 
   // Deduplicate: check if latest version has identical content
   if (nextVersion > 1) {
-    const latestPath = join(historyDir, `${String(nextVersion - 1).padStart(3, "0")}.md`);
+    const latestPath = join(historyDir, `${String(nextVersion - 1).padStart(3, '0')}.md`);
     try {
-      const existing = readFileSync(latestPath, "utf-8");
+      const existing = readFileSync(latestPath, 'utf-8');
       if (existing === plan) {
         return { version: nextVersion - 1, path: latestPath, isNew: false };
       }
@@ -160,9 +162,9 @@ export function saveToHistory(
     }
   }
 
-  const fileName = `${String(nextVersion).padStart(3, "0")}.md`;
+  const fileName = `${String(nextVersion).padStart(3, '0')}.md`;
   const filePath = join(historyDir, fileName);
-  writeFileSync(filePath, plan, "utf-8");
+  writeFileSync(filePath, plan, 'utf-8');
   return { version: nextVersion, path: filePath, isNew: true };
 }
 
@@ -170,17 +172,13 @@ export function saveToHistory(
  * Read a specific version's content from history.
  * Returns null if the version doesn't exist or on read error.
  */
-export function getPlanVersion(
-  project: string,
-  slug: string,
-  version: number
-): string | null {
-  const historyDir = join(homedir(), ".plannotator", "history", project, slug);
-  const fileName = `${String(version).padStart(3, "0")}.md`;
+export function getPlanVersion(project: string, slug: string, version: number): string | null {
+  const historyDir = join(homedir(), '.plannotator', 'history', project, slug);
+  const fileName = `${String(version).padStart(3, '0')}.md`;
   const filePath = join(historyDir, fileName);
 
   try {
-    return readFileSync(filePath, "utf-8");
+    return readFileSync(filePath, 'utf-8');
   } catch {
     return null;
   }
@@ -190,13 +188,9 @@ export function getPlanVersion(
  * Get the file path for a specific version in history.
  * Returns null if the version file doesn't exist.
  */
-export function getPlanVersionPath(
-  project: string,
-  slug: string,
-  version: number
-): string | null {
-  const historyDir = join(homedir(), ".plannotator", "history", project, slug);
-  const fileName = `${String(version).padStart(3, "0")}.md`;
+export function getPlanVersionPath(project: string, slug: string, version: number): string | null {
+  const historyDir = join(homedir(), '.plannotator', 'history', project, slug);
+  const fileName = `${String(version).padStart(3, '0')}.md`;
   const filePath = join(historyDir, fileName);
   return existsSync(filePath) ? filePath : null;
 }
@@ -206,7 +200,7 @@ export function getPlanVersionPath(
  * Returns 0 if the directory doesn't exist.
  */
 export function getVersionCount(project: string, slug: string): number {
-  const historyDir = join(homedir(), ".plannotator", "history", project, slug);
+  const historyDir = join(homedir(), '.plannotator', 'history', project, slug);
   try {
     const entries = readdirSync(historyDir);
     return entries.filter((e) => /^\d+\.md$/.test(e)).length;
@@ -221,9 +215,9 @@ export function getVersionCount(project: string, slug: string): number {
  */
 export function listVersions(
   project: string,
-  slug: string
+  slug: string,
 ): Array<{ version: number; timestamp: string }> {
-  const historyDir = join(homedir(), ".plannotator", "history", project, slug);
+  const historyDir = join(homedir(), '.plannotator', 'history', project, slug);
   try {
     const entries = readdirSync(historyDir);
     const versions: Array<{ version: number; timestamp: string }> = [];
@@ -236,7 +230,7 @@ export function listVersions(
           const stat = statSync(filePath);
           versions.push({ version, timestamp: stat.mtime.toISOString() });
         } catch {
-          versions.push({ version, timestamp: "" });
+          versions.push({ version, timestamp: '' });
         }
       }
     }
@@ -251,9 +245,9 @@ export function listVersions(
  * Returns slugs sorted by most recently modified first.
  */
 export function listProjectPlans(
-  project: string
+  project: string,
 ): Array<{ slug: string; versions: number; lastModified: string }> {
-  const projectDir = join(homedir(), ".plannotator", "history", project);
+  const projectDir = join(homedir(), '.plannotator', 'history', project);
   try {
     const entries = readdirSync(projectDir, { withFileTypes: true });
     const plans: Array<{ slug: string; versions: number; lastModified: string }> = [];
@@ -269,13 +263,15 @@ export function listProjectPlans(
         try {
           const mtime = statSync(join(slugDir, file)).mtime.getTime();
           if (mtime > latest) latest = mtime;
-        } catch { /* skip */ }
+        } catch {
+          /* skip */
+        }
       }
 
       plans.push({
         slug: entry.name,
         versions: files.length,
-        lastModified: latest ? new Date(latest).toISOString() : "",
+        lastModified: latest ? new Date(latest).toISOString() : '',
       });
     }
     return plans.sort((a, b) => b.lastModified.localeCompare(a.lastModified));

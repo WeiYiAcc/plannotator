@@ -1,6 +1,6 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { CodeAnnotation, SelectedLineRange, CodeAnnotationType } from '@plannotator/ui/types';
 import { useDismissOnOutsideAndEscape } from '@plannotator/ui/hooks/useDismissOnOutsideAndEscape';
+import type { CodeAnnotation, CodeAnnotationType, SelectedLineRange } from '@plannotator/ui/types';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { extractLinesFromPatch } from '../utils/patchParser';
 
 export interface ToolbarState {
@@ -12,8 +12,18 @@ interface UseAnnotationToolbarArgs {
   patch: string;
   filePath: string;
   onLineSelection: (range: SelectedLineRange | null) => void;
-  onAddAnnotation: (type: CodeAnnotationType, text?: string, suggestedCode?: string, originalCode?: string) => void;
-  onEditAnnotation: (id: string, text?: string, suggestedCode?: string, originalCode?: string) => void;
+  onAddAnnotation: (
+    type: CodeAnnotationType,
+    text?: string,
+    suggestedCode?: string,
+    originalCode?: string,
+  ) => void;
+  onEditAnnotation: (
+    id: string,
+    text?: string,
+    suggestedCode?: string,
+    originalCode?: string,
+  ) => void;
 }
 
 // Per-range draft storage (survives component remounts, e.g. file switches)
@@ -31,7 +41,13 @@ function draftKey(filePath: string, range: SelectedLineRange): string {
   return `${filePath}:${range.side}:${start}-${end}`;
 }
 
-export function useAnnotationToolbar({ patch, filePath, onLineSelection, onAddAnnotation, onEditAnnotation }: UseAnnotationToolbarArgs) {
+export function useAnnotationToolbar({
+  patch,
+  filePath,
+  onLineSelection,
+  onAddAnnotation,
+  onEditAnnotation,
+}: UseAnnotationToolbarArgs) {
   const toolbarRef = useRef<HTMLDivElement>(null);
   const lastMousePosition = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -91,46 +107,49 @@ export function useAnnotationToolbar({ patch, filePath, onLineSelection, onAddAn
   }, []);
 
   // Handle line selection end
-  const handleLineSelectionEnd = useCallback((range: SelectedLineRange | null) => {
-    if (!range) {
-      setToolbarState(null);
-      onLineSelection(null);
-      return;
-    }
+  const handleLineSelectionEnd = useCallback(
+    (range: SelectedLineRange | null) => {
+      if (!range) {
+        setToolbarState(null);
+        onLineSelection(null);
+        return;
+      }
 
-    // Save current draft before switching
-    saveDraft();
-    setEditingAnnotationId(null);
+      // Save current draft before switching
+      saveDraft();
+      setEditingAnnotationId(null);
 
-    // Restore draft for new range or start fresh
-    const draft = draftStore.get(draftKey(filePath, range));
-    if (draft) {
-      setCommentText(draft.commentText);
-      setSuggestedCode(draft.suggestedCode);
-      setShowSuggestedCode(draft.showSuggestedCode);
-    } else {
-      setCommentText('');
-      setSuggestedCode('');
-      setShowSuggestedCode(false);
-    }
+      // Restore draft for new range or start fresh
+      const draft = draftStore.get(draftKey(filePath, range));
+      if (draft) {
+        setCommentText(draft.commentText);
+        setSuggestedCode(draft.suggestedCode);
+        setShowSuggestedCode(draft.showSuggestedCode);
+      } else {
+        setCommentText('');
+        setSuggestedCode('');
+        setShowSuggestedCode(false);
+      }
 
-    const mousePos = lastMousePosition.current;
-    setToolbarState({
-      position: {
-        top: mousePos.y + 10,
-        left: mousePos.x,
-      },
-      range,
-    });
+      const mousePos = lastMousePosition.current;
+      setToolbarState({
+        position: {
+          top: mousePos.y + 10,
+          left: mousePos.x,
+        },
+        range,
+      });
 
-    // Pre-extract original code from selected lines
-    const side = range.side === 'additions' ? 'new' : 'old';
-    const start = Math.min(range.start, range.end);
-    const end = Math.max(range.start, range.end);
-    setSelectedOriginalCode(extractLinesFromPatch(patch, start, end, side as 'old' | 'new'));
+      // Pre-extract original code from selected lines
+      const side = range.side === 'additions' ? 'new' : 'old';
+      const start = Math.min(range.start, range.end);
+      const end = Math.max(range.start, range.end);
+      setSelectedOriginalCode(extractLinesFromPatch(patch, start, end, side as 'old' | 'new'));
 
-    onLineSelection(range);
-  }, [patch, filePath, onLineSelection, saveDraft]);
+      onLineSelection(range);
+    },
+    [patch, filePath, onLineSelection, saveDraft],
+  );
 
   // Handle annotation submission (create or update)
   const handleSubmitAnnotation = useCallback(() => {
@@ -150,7 +169,17 @@ export function useAnnotationToolbar({ patch, filePath, onLineSelection, onAddAn
 
     clearDraft();
     resetForm();
-  }, [toolbarState, commentText, suggestedCode, selectedOriginalCode, editingAnnotationId, onAddAnnotation, onEditAnnotation, clearDraft, resetForm]);
+  }, [
+    toolbarState,
+    commentText,
+    suggestedCode,
+    selectedOriginalCode,
+    editingAnnotationId,
+    onAddAnnotation,
+    onEditAnnotation,
+    clearDraft,
+    resetForm,
+  ]);
 
   // Start editing an existing annotation
   const startEdit = useCallback((annotation: CodeAnnotation) => {

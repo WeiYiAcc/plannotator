@@ -25,19 +25,14 @@ export async function compress(data: unknown): Promise<string> {
     binary += String.fromCharCode(compressed[i]);
   }
   const base64 = btoa(binary);
-  return base64
-    .replace(/\+/g, '-')
-    .replace(/\//g, '_')
-    .replace(/=/g, '');
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 }
 
 export async function decompress(b64: string): Promise<unknown> {
-  const base64 = b64
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
+  const base64 = b64.replace(/-/g, '+').replace(/_/g, '/');
 
   const binary = atob(base64);
-  const byteArray = Uint8Array.from(binary, c => c.charCodeAt(0));
+  const byteArray = Uint8Array.from(binary, (c) => c.charCodeAt(0));
 
   const stream = new DecompressionStream('deflate-raw');
   const writer = stream.writable.getWriter();

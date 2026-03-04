@@ -18,11 +18,6 @@ export interface PlanSaveSettings {
   customPath: string | null;
 }
 
-const DEFAULT_SETTINGS: PlanSaveSettings = {
-  enabled: true,
-  customPath: null, // null means use default ~/.plannotator/plans/
-};
-
 /**
  * Get current plan save settings from storage
  */

@@ -1,6 +1,6 @@
-import { handleRequest } from "../core/handler";
-import { corsHeaders, getAllowedOrigins } from "../core/cors";
-import { KvPasteStore } from "../stores/kv";
+import { corsHeaders, getAllowedOrigins } from '../core/cors';
+import { handleRequest } from '../core/handler';
+import { KvPasteStore } from '../stores/kv';
 
 interface Env {
   PASTE_KV: KVNamespace;
@@ -9,7 +9,7 @@ interface Env {
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const origin = request.headers.get("Origin") ?? "";
+    const origin = request.headers.get('Origin') ?? '';
     const allowed = getAllowedOrigins(env.ALLOWED_ORIGINS);
     const cors = corsHeaders(origin, allowed);
     const store = new KvPasteStore(env.PASTE_KV);

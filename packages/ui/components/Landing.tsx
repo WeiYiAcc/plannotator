@@ -1,6 +1,6 @@
-import React from "react";
-import logoImage from "../plannotator.webp";
-import { ModeToggle } from "./ModeToggle";
+import type React from 'react';
+import logoImage from '../plannotator.webp';
+import { ModeToggle } from './ModeToggle';
 
 interface LandingProps {
   onEnter?: () => void;
@@ -12,9 +12,7 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 h-12 flex items-center justify-between px-6 bg-background/80 backdrop-blur-sm border-b border-border/30 z-50">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold tracking-tight">
-            Plannotator
-          </span>
+          <span className="text-sm font-semibold tracking-tight">Plannotator</span>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 text-xs">
@@ -54,9 +52,7 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-[1.1]">
                 Annotate plans.
                 <br />
-                <span className="text-muted-foreground">
-                  Not in the terminal.
-                </span>
+                <span className="text-muted-foreground">Not in the terminal.</span>
               </h1>
               <img
                 src={logoImage}
@@ -66,8 +62,8 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
             </div>
 
             <p className="text-lg text-muted-foreground mb-8 max-w-lg">
-              Interactive Plan Review for coding agents. Mark up and refine plans visually,
-              share for team collaboration. Works with Claude Code and OpenCode.
+              Interactive Plan Review for coding agents. Mark up and refine plans visually, share
+              for team collaboration. Works with Claude Code and OpenCode.
             </p>
 
             <div className="flex flex-col gap-3">
@@ -79,11 +75,7 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-secondary text-white font-medium hover:opacity-90 transition-opacity"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    viewBox="0 0 24 24"
-                    fill="currentColor"
-                  >
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
                   </svg>
                   Watch for Claude Code
@@ -154,9 +146,9 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
                 The Problem
               </h3>
               <p className="text-foreground/90">
-                Coding agents show plans in the terminal. You approve or deny, but
-                giving specific feedback means typing everything out. Hard to
-                reference exact sections. Zero collaboration features.
+                Coding agents show plans in the terminal. You approve or deny, but giving specific
+                feedback means typing everything out. Hard to reference exact sections. Zero
+                collaboration features.
               </p>
             </div>
             <div>
@@ -164,9 +156,9 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
                 The Solution
               </h3>
               <p className="text-foreground/90">
-                Select the exact parts of the plan you want to change. Mark for
-                deletion, add a comment, or suggest a replacement. Share plans
-                with your team. Feedback flows back to your agent automatically.
+                Select the exact parts of the plan you want to change. Mark for deletion, add a
+                comment, or suggest a replacement. Share plans with your team. Feedback flows back
+                to your agent automatically.
               </p>
             </div>
           </div>
@@ -194,8 +186,8 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
               <div>
                 <h3 className="font-semibold mb-1">Runs locally.</h3>
                 <p className="text-muted-foreground text-sm">
-                  Local plugin. No network requests. Plannotator runs entirely
-                  in your browser. Plans never leave your machine.
+                  Local plugin. No network requests. Plannotator runs entirely in your browser.
+                  Plans never leave your machine.
                 </p>
               </div>
             </div>
@@ -218,9 +210,8 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
               <div>
                 <h3 className="font-semibold mb-1">Share privately.</h3>
                 <p className="text-muted-foreground text-sm">
-                  Collaborate without a backend. Plans and annotations compress
-                  into the URL itself — share a link. No accounts, no database,
-                  no third parties. Inspired by{" "}
+                  Collaborate without a backend. Plans and annotations compress into the URL itself
+                  — share a link. No accounts, no database, no third parties. Inspired by{' '}
                   <a
                     href="https://github.com/antonmedv/textarea"
                     target="_blank"
@@ -252,9 +243,8 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
               <div>
                 <h3 className="font-semibold mb-1">Save to Obsidian.</h3>
                 <p className="text-muted-foreground text-sm">
-                  Approved plans auto-save to your vault with frontmatter and
-                  auto-extracted tags. Build a searchable archive of every plan
-                  your agents create.
+                  Approved plans auto-save to your vault with frontmatter and auto-extracted tags.
+                  Build a searchable archive of every plan your agents create.
                 </p>
               </div>
             </div>
@@ -263,9 +253,7 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
 
         {/* Preview */}
         <section className="py-16 px-8 border-t border-border/30">
-          <h2 className="text-xl font-semibold mb-8 text-center">
-            What it looks like
-          </h2>
+          <h2 className="text-xl font-semibold mb-8 text-center">What it looks like</h2>
 
           {/* App Preview */}
           <div className="rounded-xl border border-border/50 bg-card/50 overflow-hidden shadow-2xl">
@@ -336,9 +324,7 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
               <div className="w-48 border-l border-border/30 bg-card/30 p-3">
                 <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
                   <span>Annotations</span>
-                  <span className="bg-muted px-1.5 py-0.5 rounded text-[9px]">
-                    2
-                  </span>
+                  <span className="bg-muted px-1.5 py-0.5 rounded text-[9px]">2</span>
                 </div>
 
                 {/* Mock annotation cards */}
@@ -380,19 +366,20 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
           <div className="space-y-6 max-w-2xl">
             <Step num={1} title="Agent triggers Plannotator">
               <span className="text-xs">
-                <strong>Claude Code:</strong> ExitPlanMode hook opens UI<br />
+                <strong>Claude Code:</strong> ExitPlanMode hook opens UI
+                <br />
                 <strong>OpenCode:</strong> Agent calls submit_plan tool
               </span>
             </Step>
 
             <Step num={2} title="Annotate visually">
-              Select text → choose action (delete, comment, replace) → annotations appear
-              in the sidebar
+              Select text → choose action (delete, comment, replace) → annotations appear in the
+              sidebar
             </Step>
 
             <Step num={3} title="Approve or request changes">
-              Click approve to proceed, or provide feedback with annotations.
-              Feedback flows back to your agent automatically.
+              Click approve to proceed, or provide feedback with annotations. Feedback flows back to
+              your agent automatically.
             </Step>
           </div>
         </section>
@@ -427,19 +414,13 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
           >
             <span className="inline-flex items-center rounded overflow-hidden">
               <span className="bg-[#121011] text-white px-2 py-1 flex items-center gap-1.5">
-                <svg
-                  className="w-3.5 h-3.5"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
                 </svg>
                 <span className="text-xs font-medium">GitHub</span>
               </span>
             </span>
-            <span className="underline underline-offset-2">
-              View GitHub repository
-            </span>
+            <span className="underline underline-offset-2">View GitHub repository</span>
           </a>
         </section>
 
@@ -456,8 +437,8 @@ export const Landing: React.FC<LandingProps> = ({ onEnter }) => {
                 <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
               </svg>
               backnotprop
-            </a>{" "}
-            ·{" "}
+            </a>{' '}
+            ·{' '}
             <a
               href="https://x.com/backnotprop"
               target="_blank"

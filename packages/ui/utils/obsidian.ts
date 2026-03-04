@@ -30,9 +30,9 @@ export const DEFAULT_FILENAME_FORMAT = '{title} - {Mon} {D}, {YYYY} {h}-{mm}{amp
  */
 export interface ObsidianSettings {
   enabled: boolean;
-  vaultPath: string;      // Selected vault path OR '__custom__' sentinel
+  vaultPath: string; // Selected vault path OR '__custom__' sentinel
   folder: string;
-  customPath?: string;    // User-entered path when vaultPath === '__custom__'
+  customPath?: string; // User-entered path when vaultPath === '__custom__'
   filenameFormat?: string; // Custom filename format (e.g. '{YYYY}-{MM}-{DD} - {title}')
   vaultBrowserEnabled: boolean; // Show vault file browser in sidebar
 }
@@ -107,8 +107,20 @@ export function extractTags(markdown: string): string[] {
 
   // Common words to exclude from title extraction
   const stopWords = new Set([
-    'the', 'and', 'for', 'with', 'this', 'that', 'from', 'into',
-    'plan', 'implementation', 'overview', 'phase', 'step', 'steps',
+    'the',
+    'and',
+    'for',
+    'with',
+    'this',
+    'that',
+    'from',
+    'into',
+    'plan',
+    'implementation',
+    'overview',
+    'phase',
+    'step',
+    'steps',
   ]);
 
   // 1. Extract from first H1 title
@@ -117,12 +129,12 @@ export function extractTags(markdown: string): string[] {
   if (h1Match) {
     const titleWords = h1Match[1]
       .toLowerCase()
-      .replace(/[^\w\s-]/g, ' ')  // Remove special chars except hyphens
+      .replace(/[^\w\s-]/g, ' ') // Remove special chars except hyphens
       .split(/\s+/)
-      .filter(word => word.length > 2 && !stopWords.has(word));
+      .filter((word) => word.length > 2 && !stopWords.has(word));
 
     // Add first 3 meaningful words from title
-    titleWords.slice(0, 3).forEach(word => tags.add(word));
+    titleWords.slice(0, 3).forEach((word) => tags.add(word));
   }
 
   // 2. Extract code fence languages
@@ -133,8 +145,10 @@ export function extractTags(markdown: string): string[] {
   for (const [, lang] of langMatches) {
     const normalizedLang = lang.toLowerCase();
     // Skip generic/config languages and duplicates
-    if (!seenLangs.has(normalizedLang) &&
-        !['json', 'yaml', 'yml', 'text', 'txt', 'markdown', 'md'].includes(normalizedLang)) {
+    if (
+      !seenLangs.has(normalizedLang) &&
+      !['json', 'yaml', 'yml', 'text', 'txt', 'markdown', 'md'].includes(normalizedLang)
+    ) {
       seenLangs.add(normalizedLang);
       tags.add(normalizedLang);
     }
@@ -152,7 +166,7 @@ export function extractTags(markdown: string): string[] {
  */
 export function generateFrontmatter(tags: string[]): string {
   const now = new Date().toISOString();
-  const tagList = tags.map(t => t.toLowerCase()).join(', ');
+  const tagList = tags.map((t) => t.toLowerCase()).join(', ');
 
   return `---
 created: ${now}
@@ -169,10 +183,11 @@ tags: [${tagList}]
  */
 export function generateFilename(): string {
   const now = new Date();
-  const timestamp = now.toISOString()
-    .slice(0, 16)           // "2026-01-02T14:30"
-    .replace('T', '-')      // "2026-01-02-14:30"
-    .replace(/:/g, '');     // "2026-01-02-1430"
+  const timestamp = now
+    .toISOString()
+    .slice(0, 16) // "2026-01-02T14:30"
+    .replace('T', '-') // "2026-01-02-14:30"
+    .replace(/:/g, ''); // "2026-01-02-1430"
 
   return `${timestamp}.md`;
 }

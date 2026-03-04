@@ -1,5 +1,4 @@
-import type { PasteStore } from "./storage";
-import { corsHeaders } from "./cors";
+import type { PasteStore } from './storage';
 
 export interface PasteOptions {
   maxSize: number;
@@ -18,8 +17,7 @@ const ID_PATTERN = /^\/api\/paste\/([A-Za-z0-9]{6,16})$/;
  * Uses Web Crypto with rejection sampling to avoid modulo bias.
  */
 function generateId(): string {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   const limit = 256 - (256 % chars.length); // 248 — largest multiple of 62 that fits in a byte
   const id: string[] = [];
   while (id.length < 8) {
@@ -32,24 +30,24 @@ function generateId(): string {
       }
     }
   }
-  return id.join("");
+  return id.join('');
 }
 
 export async function createPaste(
   data: string,
   store: PasteStore,
-  options: Partial<PasteOptions> = {}
+  options: Partial<PasteOptions> = {},
 ): Promise<{ id: string }> {
   const opts = { ...DEFAULT_OPTIONS, ...options };
 
-  if (!data || typeof data !== "string") {
+  if (!data || typeof data !== 'string') {
     throw new PasteError('Missing or invalid "data" field', 400);
   }
 
   if (data.length > opts.maxSize) {
     throw new PasteError(
       `Payload too large (max ${Math.round(opts.maxSize / 1024)} KB compressed)`,
-      413
+      413,
     );
   }
 
@@ -58,17 +56,14 @@ export async function createPaste(
   return { id };
 }
 
-export async function getPaste(
-  id: string,
-  store: PasteStore
-): Promise<string | null> {
+export async function getPaste(id: string, store: PasteStore): Promise<string | null> {
   return store.get(id);
 }
 
 export class PasteError extends Error {
   constructor(
     message: string,
-    public status: number
+    public status: number,
   ) {
     super(message);
   }
@@ -82,63 +77,51 @@ export async function handleRequest(
   request: Request,
   store: PasteStore,
   cors: Record<string, string>,
-  options?: Partial<PasteOptions>
+  options?: Partial<PasteOptions>,
 ): Promise<Response> {
   const url = new URL(request.url);
 
-  if (request.method === "OPTIONS") {
+  if (request.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: cors });
   }
 
-  if (url.pathname === "/api/paste" && request.method === "POST") {
+  if (url.pathname === '/api/paste' && request.method === 'POST') {
     let body: { data?: unknown };
     try {
       body = (await request.json()) as { data?: unknown };
     } catch {
-      return Response.json(
-        { error: "Invalid JSON body" },
-        { status: 400, headers: cors }
-      );
+      return Response.json({ error: 'Invalid JSON body' }, { status: 400, headers: cors });
     }
     try {
       const result = await createPaste(body.data as string, store, options);
       return Response.json(result, { status: 201, headers: cors });
     } catch (e) {
       if (e instanceof PasteError) {
-        return Response.json(
-          { error: e.message },
-          { status: e.status, headers: cors }
-        );
+        return Response.json({ error: e.message }, { status: e.status, headers: cors });
       }
-      return Response.json(
-        { error: "Failed to store paste" },
-        { status: 500, headers: cors }
-      );
+      return Response.json({ error: 'Failed to store paste' }, { status: 500, headers: cors });
     }
   }
 
   const match = url.pathname.match(ID_PATTERN);
-  if (match && request.method === "GET") {
+  if (match && request.method === 'GET') {
     const data = await getPaste(match[1], store);
     if (!data) {
-      return Response.json(
-        { error: "Paste not found or expired" },
-        { status: 404, headers: cors }
-      );
+      return Response.json({ error: 'Paste not found or expired' }, { status: 404, headers: cors });
     }
     return Response.json(
       { data },
       {
         headers: {
           ...cors,
-          "Cache-Control": "private, no-store",
+          'Cache-Control': 'private, no-store',
         },
-      }
+      },
     );
   }
 
   return Response.json(
-    { error: "Not found. Valid paths: POST /api/paste, GET /api/paste/:id" },
-    { status: 404, headers: cors }
+    { error: 'Not found. Valid paths: POST /api/paste, GET /api/paste/:id' },
+    { status: 404, headers: cors },
   );
 }

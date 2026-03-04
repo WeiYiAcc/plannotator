@@ -1,24 +1,24 @@
-import { resolve } from "path";
+import { resolve } from 'node:path';
 
 const ALLOWED_IMAGE_EXTENSIONS = new Set([
-  "png",
-  "jpg",
-  "jpeg",
-  "gif",
-  "webp",
-  "svg",
-  "bmp",
-  "ico",
-  "tiff",
-  "tif",
-  "avif",
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'webp',
+  'svg',
+  'bmp',
+  'ico',
+  'tiff',
+  'tif',
+  'avif',
 ]);
 
-const UPLOAD_DIR = "/tmp/plannotator";
+const UPLOAD_DIR = '/tmp/plannotator';
 
 function getExtension(filePath: string): string {
-  const lastDot = filePath.lastIndexOf(".");
-  if (lastDot === -1) return "";
+  const lastDot = filePath.lastIndexOf('.');
+  if (lastDot === -1) return '';
   return filePath.slice(lastDot + 1).toLowerCase();
 }
 
@@ -37,7 +37,7 @@ export function validateImagePath(rawPath: string): {
     return {
       valid: false,
       resolved,
-      error: "Path does not point to a supported image file",
+      error: 'Path does not point to a supported image file',
     };
   }
 
@@ -49,7 +49,7 @@ export function validateUploadExtension(fileName: string): {
   ext: string;
   error?: string;
 } {
-  const ext = getExtension(fileName) || "png";
+  const ext = getExtension(fileName) || 'png';
 
   if (!ALLOWED_IMAGE_EXTENSIONS.has(ext)) {
     return {

@@ -1,7 +1,7 @@
-import path from 'path';
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import path from 'node:path';
 import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
 import pkg from '../../package.json';
 
 export default defineConfig({
@@ -19,7 +19,7 @@ export default defineConfig({
       '@plannotator/ui': path.resolve(__dirname, '../../packages/ui'),
       '@plannotator/editor/styles': path.resolve(__dirname, '../../packages/editor/index.css'),
       '@plannotator/editor': path.resolve(__dirname, '../../packages/editor/App.tsx'),
-    }
+    },
   },
   build: {
     target: 'esnext',

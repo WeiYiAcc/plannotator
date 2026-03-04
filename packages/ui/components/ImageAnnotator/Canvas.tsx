@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import type React from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import type { Point, Stroke, Tool } from './types';
 import { renderStroke } from './utils';
 
@@ -37,7 +38,7 @@ export const Canvas: React.FC<CanvasProps> = ({
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // Render completed strokes
-    strokes.forEach(stroke => renderStroke(ctx, stroke));
+    strokes.forEach((stroke) => renderStroke(ctx, stroke));
 
     // Render current stroke
     if (currentStroke) {

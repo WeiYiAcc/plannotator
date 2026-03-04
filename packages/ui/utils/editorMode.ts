@@ -5,8 +5,8 @@
  * carries over between plan reviews.
  */
 
-import { storage } from './storage';
 import type { EditorMode } from '../types';
+import { storage } from './storage';
 
 const STORAGE_KEY = 'plannotator-editor-mode';
 

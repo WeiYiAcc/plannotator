@@ -6,9 +6,10 @@
  * Notes tab: Save plan to Obsidian/Bear without approving
  */
 
-import React, { useState, useEffect } from 'react';
-import { getObsidianSettings, getEffectiveVaultPath } from '../utils/obsidian';
+import type React from 'react';
+import { useEffect, useState } from 'react';
 import { getBearSettings } from '../utils/bear';
+import { getEffectiveVaultPath, getObsidianSettings } from '../utils/obsidian';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -57,7 +58,10 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const defaultTab = initialTab || (sharingEnabled ? 'share' : 'annotations');
   const [activeTab, setActiveTab] = useState<Tab>(defaultTab);
   const [copied, setCopied] = useState<'short' | 'full' | 'annotations' | false>(false);
-  const [saveStatus, setSaveStatus] = useState<Record<SaveTarget, SaveStatus>>({ obsidian: 'idle', bear: 'idle' });
+  const [saveStatus, setSaveStatus] = useState<Record<SaveTarget, SaveStatus>>({
+    obsidian: 'idle',
+    bear: 'idle',
+  });
   const [saveErrors, setSaveErrors] = useState<Record<string, string>>({});
 
   // Reset tab when modal opens
@@ -114,8 +118,12 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   const handleSaveToNotes = async (target: SaveTarget) => {
     if (!markdown) return;
 
-    setSaveStatus(prev => ({ ...prev, [target]: 'saving' }));
-    setSaveErrors(prev => { const next = { ...prev }; delete next[target]; return next; });
+    setSaveStatus((prev) => ({ ...prev, [target]: 'saving' }));
+    setSaveErrors((prev) => {
+      const next = { ...prev };
+      delete next[target];
+      return next;
+    });
 
     const body: { obsidian?: object; bear?: object } = {};
 
@@ -141,14 +149,14 @@ export const ExportModal: React.FC<ExportModalProps> = ({
       const result = data.results?.[target];
 
       if (result?.success) {
-        setSaveStatus(prev => ({ ...prev, [target]: 'success' }));
+        setSaveStatus((prev) => ({ ...prev, [target]: 'success' }));
       } else {
-        setSaveStatus(prev => ({ ...prev, [target]: 'error' }));
-        setSaveErrors(prev => ({ ...prev, [target]: result?.error || 'Save failed' }));
+        setSaveStatus((prev) => ({ ...prev, [target]: 'error' }));
+        setSaveErrors((prev) => ({ ...prev, [target]: result?.error || 'Save failed' }));
       }
     } catch {
-      setSaveStatus(prev => ({ ...prev, [target]: 'error' }));
-      setSaveErrors(prev => ({ ...prev, [target]: 'Save failed' }));
+      setSaveStatus((prev) => ({ ...prev, [target]: 'error' }));
+      setSaveErrors((prev) => ({ ...prev, [target]: 'Save failed' }));
     }
   };
 
@@ -156,7 +164,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     const targets: SaveTarget[] = [];
     if (isObsidianReady) targets.push('obsidian');
     if (isBearReady) targets.push('bear');
-    await Promise.all(targets.map(t => handleSaveToNotes(t)));
+    await Promise.all(targets.map((t) => handleSaveToNotes(t)));
   };
 
   // Determine which tabs to show
@@ -166,7 +174,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
       <div
         className="bg-card border border-border rounded-xl w-full max-w-2xl flex flex-col max-h-[80vh] shadow-2xl relative"
-        onClick={e => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
       >
         {taterSprite}
 
@@ -182,7 +190,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                 onClick={onClose}
                 className="p-1.5 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -246,7 +260,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                       readOnly
                       value={shortShareUrl}
                       className="w-full bg-muted rounded-lg p-3 pr-20 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-accent/50"
-                      onClick={e => (e.target as HTMLInputElement).select()}
+                      onClick={(e) => (e.target as HTMLInputElement).select()}
                     />
                     <button
                       onClick={() => handleCopy(shortShareUrl, 'short')}
@@ -254,15 +268,31 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     >
                       {copied === 'short' ? (
                         <>
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                           </svg>
                           Copied
                         </>
                       ) : (
                         <>
-                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            strokeWidth={2}
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                            />
                           </svg>
                           Copy
                         </>
@@ -270,12 +300,19 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     </button>
                   </div>
                   <p className="text-[10px] text-muted-foreground mt-1">
-                    Encrypted short link. Your plan is end-to-end encrypted before it leaves your browser — not even the server can read it.
+                    Encrypted short link. Your plan is end-to-end encrypted before it leaves your
+                    browser — not even the server can read it.
                   </p>
                 </div>
               ) : isGeneratingShortUrl ? (
                 <div className="flex items-center gap-2 text-xs text-muted-foreground p-3 bg-muted rounded-lg">
-                  <svg className="w-3 h-3 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <svg
+                    className="w-3 h-3 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
                     <path d="M12 2v4m0 12v4m-7.07-3.93l2.83-2.83m8.48-8.48l2.83-2.83M2 12h4m12 0h4m-3.93 7.07l-2.83-2.83M7.76 7.76L4.93 4.93" />
                   </svg>
                   Generating short link...
@@ -307,7 +344,7 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                     readOnly
                     value={shareUrl}
                     className="w-full h-24 bg-muted rounded-lg p-3 pr-20 text-xs font-mono resize-none focus:outline-none focus:ring-2 focus:ring-accent/50"
-                    onClick={e => (e.target as HTMLTextAreaElement).select()}
+                    onClick={(e) => (e.target as HTMLTextAreaElement).select()}
                   />
                   <button
                     onClick={() => handleCopy(shareUrl, 'full')}
@@ -315,15 +352,31 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                   >
                     {copied === 'full' ? (
                       <>
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <svg
+                          className="w-3 h-3"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
                           <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                         </svg>
                         Copied
                       </>
                     ) : (
                       <>
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        <svg
+                          className="w-3 h-3"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                          />
                         </svg>
                         Copy
                       </>
@@ -341,7 +394,8 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               </div>
 
               <p className="text-xs text-muted-foreground">
-                Only someone with this exact link can view your plan. Short links are end-to-end encrypted — the decryption key is in the URL and never sent to the server.
+                Only someone with this exact link can view your plan. Short links are end-to-end
+                encrypted — the decryption key is in the URL and never sent to the server.
               </p>
             </div>
           ) : activeTab === 'notes' && showNotesTab ? (
@@ -354,7 +408,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <div className="border border-border rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${isObsidianReady ? 'bg-success' : 'bg-muted-foreground/30'}`} />
+                    <span
+                      className={`w-2 h-2 rounded-full ${isObsidianReady ? 'bg-success' : 'bg-muted-foreground/30'}`}
+                    />
                     <span className="text-sm font-medium">Obsidian</span>
                   </div>
                   {isObsidianReady ? (
@@ -371,10 +427,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                               : 'bg-primary text-primary-foreground hover:opacity-90'
                       }`}
                     >
-                      {saveStatus.obsidian === 'saving' ? 'Saving...'
-                        : saveStatus.obsidian === 'success' ? 'Saved'
-                        : saveStatus.obsidian === 'error' ? 'Failed'
-                        : 'Save'}
+                      {saveStatus.obsidian === 'saving'
+                        ? 'Saving...'
+                        : saveStatus.obsidian === 'success'
+                          ? 'Saved'
+                          : saveStatus.obsidian === 'error'
+                            ? 'Failed'
+                            : 'Save'}
                     </button>
                   ) : (
                     <span className="text-xs text-muted-foreground">Not configured</span>
@@ -399,7 +458,9 @@ export const ExportModal: React.FC<ExportModalProps> = ({
               <div className="border border-border rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${isBearReady ? 'bg-success' : 'bg-muted-foreground/30'}`} />
+                    <span
+                      className={`w-2 h-2 rounded-full ${isBearReady ? 'bg-success' : 'bg-muted-foreground/30'}`}
+                    />
                     <span className="text-sm font-medium">Bear</span>
                   </div>
                   {isBearReady ? (
@@ -416,10 +477,13 @@ export const ExportModal: React.FC<ExportModalProps> = ({
                               : 'bg-primary text-primary-foreground hover:opacity-90'
                       }`}
                     >
-                      {saveStatus.bear === 'saving' ? 'Saving...'
-                        : saveStatus.bear === 'success' ? 'Saved'
-                        : saveStatus.bear === 'error' ? 'Failed'
-                        : 'Save'}
+                      {saveStatus.bear === 'saving'
+                        ? 'Saving...'
+                        : saveStatus.bear === 'success'
+                          ? 'Saved'
+                          : saveStatus.bear === 'error'
+                            ? 'Failed'
+                            : 'Save'}
                     </button>
                   ) : (
                     <span className="text-xs text-muted-foreground">Not configured</span>

@@ -5,7 +5,7 @@
  * Priority: org/repo from remote → repo name → directory name
  */
 
-import { $ } from "bun";
+import { $ } from 'bun';
 
 export interface RepoInfo {
   /** Display string (e.g., "backnotprop/plannotator" or "my-project") */
@@ -41,8 +41,8 @@ function parseRemoteUrl(url: string): string | null {
  */
 function getDirName(path: string): string | null {
   if (!path) return null;
-  const trimmed = path.trim().replace(/\/+$/, "");
-  const parts = trimmed.split("/");
+  const trimmed = path.trim().replace(/\/+$/, '');
+  const parts = trimmed.split('/');
   return parts[parts.length - 1] || null;
 }
 
@@ -54,7 +54,7 @@ async function getCurrentBranch(): Promise<string | undefined> {
     const result = await $`git rev-parse --abbrev-ref HEAD`.quiet().nothrow();
     if (result.exitCode === 0) {
       const branch = result.stdout.toString().trim();
-      return branch && branch !== "HEAD" ? branch : undefined;
+      return branch && branch !== 'HEAD' ? branch : undefined;
     }
   } catch {
     // Not in a git repo

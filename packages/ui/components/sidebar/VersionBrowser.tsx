@@ -5,8 +5,9 @@
  * which version to diff against.
  */
 
-import React, { useEffect, useState } from "react";
-import type { VersionInfo, VersionEntry, ProjectPlan } from "../../hooks/usePlanDiff";
+import type React from 'react';
+import { useEffect, useState } from 'react';
+import type { ProjectPlan, VersionEntry, VersionInfo } from '../../hooks/usePlanDiff';
 
 interface VersionBrowserProps {
   versionInfo: VersionInfo | null;
@@ -28,12 +29,12 @@ interface VersionBrowserProps {
  * Format a timestamp as a relative time string.
  */
 function relativeTime(timestamp: string): string {
-  if (!timestamp) return "";
+  if (!timestamp) return '';
   const now = Date.now();
   const then = new Date(timestamp).getTime();
   const diff = now - then;
 
-  if (diff < 60_000) return "just now";
+  if (diff < 60_000) return 'just now';
   if (diff < 3_600_000) return `${Math.floor(diff / 60_000)}m ago`;
   if (diff < 86_400_000) return `${Math.floor(diff / 3_600_000)}h ago`;
   if (diff < 604_800_000) return `${Math.floor(diff / 86_400_000)}d ago`;
@@ -105,9 +106,7 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
           </div>
 
           {isLoading ? (
-            <div className="text-xs text-muted-foreground py-2 text-center">
-              Loading...
-            </div>
+            <div className="text-xs text-muted-foreground py-2 text-center">Loading...</div>
           ) : (
             <div className="space-y-0.5">
               {versions
@@ -121,8 +120,8 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
                       onClick={() => onSelectBaseVersion(v.version)}
                       className={`w-full text-left px-2 py-1.5 rounded text-xs transition-colors ${
                         isSelected
-                          ? "bg-primary/10 text-primary border border-primary/30"
-                          : "text-foreground hover:bg-muted/50 border border-transparent"
+                          ? 'bg-primary/10 text-primary border border-primary/30'
+                          : 'text-foreground hover:bg-muted/50 border border-transparent'
                       }`}
                     >
                       <div className="flex items-center justify-between">
@@ -135,7 +134,7 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
                           )}
                         </span>
                         <span className="text-[10px] text-muted-foreground">
-                          {fetchingVersion === v.version ? "Loading..." : relativeTime(v.timestamp)}
+                          {fetchingVersion === v.version ? 'Loading...' : relativeTime(v.timestamp)}
                         </span>
                       </div>
                     </button>
@@ -158,17 +157,13 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
           className="flex items-center gap-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider hover:text-foreground transition-colors"
         >
           <svg
-            className={`w-2.5 h-2.5 transition-transform ${showOtherPlans ? "rotate-90" : ""}`}
+            className={`w-2.5 h-2.5 transition-transform ${showOtherPlans ? 'rotate-90' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
             strokeWidth={2}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M9 5l7 7-7 7"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
           </svg>
           Other Plans
         </button>
@@ -179,20 +174,17 @@ export const VersionBrowser: React.FC<VersionBrowserProps> = ({
               Viewing and comparing against other plans in this project is coming soon.
             </div>
             {projectPlans.length === 0 ? (
-              <div className="text-xs text-muted-foreground py-1">
-                No other plans found.
-              </div>
+              <div className="text-xs text-muted-foreground py-1">No other plans found.</div>
             ) : (
               projectPlans.map((plan) => (
-                <div
-                  key={plan.slug}
-                  className="px-2 py-1.5 rounded text-xs opacity-60"
-                >
+                <div key={plan.slug} className="px-2 py-1.5 rounded text-xs opacity-60">
                   <div className="font-medium text-foreground truncate" title={plan.slug}>
-                    {plan.slug.replace(/-\d{4}-\d{2}-\d{2}$/, "")}
+                    {plan.slug.replace(/-\d{4}-\d{2}-\d{2}$/, '')}
                   </div>
                   <div className="flex items-center gap-2 text-[10px] text-muted-foreground mt-0.5">
-                    <span>{plan.versions} version{plan.versions !== 1 ? "s" : ""}</span>
+                    <span>
+                      {plan.versions} version{plan.versions !== 1 ? 's' : ''}
+                    </span>
                     <span>{relativeTime(plan.lastModified)}</span>
                   </div>
                 </div>

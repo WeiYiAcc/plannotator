@@ -6,7 +6,7 @@
  * Examples: "swift-tater-falcon", "gentle-tater-crystal"
  */
 
-import { uniqueUsernameGenerator, adjectives, nouns } from 'unique-username-generator';
+import { adjectives, nouns, uniqueUsernameGenerator } from 'unique-username-generator';
 import { storage } from './storage';
 
 const STORAGE_KEY = 'plannotator-identity';

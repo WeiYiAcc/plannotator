@@ -6,9 +6,9 @@
  * annotation caching per filepath, and highlight re-application.
  */
 
-import { useState, useCallback, useRef } from "react";
-import type { Annotation, ImageAttachment } from "../types";
-import type { ViewerHandle } from "../components/Viewer";
+import { useCallback, useRef, useState } from 'react';
+import type { ViewerHandle } from '../components/Viewer';
+import type { Annotation, ImageAttachment } from '../types';
 
 export interface UseLinkedDocOptions {
   markdown: string;
@@ -82,7 +82,7 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
 
   const defaultBuildUrl = useCallback(
     (path: string) => `/api/doc?path=${encodeURIComponent(path)}`,
-    []
+    [],
   );
 
   const open = useCallback(
@@ -101,7 +101,7 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
         };
 
         if (!res.ok || data.error) {
-          setError(data.error || "Failed to load document");
+          setError(data.error || 'Failed to load document');
           return;
         }
 
@@ -133,7 +133,7 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
         setGlobalAttachments(cached?.globalAttachments ?? []);
         setSelectedAnnotationId(null);
         setLinkedDoc({ filepath: data.filepath! });
-        sidebar.open("toc");
+        sidebar.open('toc');
 
         // Re-apply cached annotations after DOM settles
         if (cached?.annotations.length) {
@@ -143,7 +143,7 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
           }, HIGHLIGHT_REAPPLY_DELAY);
         }
       } catch {
-        setError("Failed to connect to server");
+        setError('Failed to connect to server');
       } finally {
         setIsLoading(false);
       }
@@ -160,7 +160,8 @@ export function useLinkedDoc(options: UseLinkedDocOptions): UseLinkedDocReturn {
       setGlobalAttachments,
       viewerRef,
       sidebar,
-    ]
+      defaultBuildUrl,
+    ],
   );
 
   const back = useCallback(() => {

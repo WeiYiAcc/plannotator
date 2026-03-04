@@ -9,18 +9,18 @@
  */
 export async function openEditorDiff(
   oldPath: string,
-  newPath: string
+  newPath: string,
 ): Promise<{ ok: true } | { error: string }> {
   try {
-    const proc = Bun.spawn(["code", "--diff", oldPath, newPath], {
-      stdout: "ignore",
-      stderr: "pipe",
+    const proc = Bun.spawn(['code', '--diff', oldPath, newPath], {
+      stdout: 'ignore',
+      stderr: 'pipe',
     });
     const exitCode = await proc.exited;
 
     if (exitCode !== 0) {
       const stderr = await new Response(proc.stderr).text();
-      if (stderr.includes("not found") || stderr.includes("ENOENT")) {
+      if (stderr.includes('not found') || stderr.includes('ENOENT')) {
         return {
           error:
             "VS Code CLI not found. Run 'Shell Command: Install code command in PATH' from the VS Code command palette.",
@@ -31,8 +31,8 @@ export async function openEditorDiff(
 
     return { ok: true };
   } catch (err) {
-    const msg = err instanceof Error ? err.message : "Failed to open diff";
-    if (msg.includes("ENOENT") || msg.includes("not found")) {
+    const msg = err instanceof Error ? err.message : 'Failed to open diff';
+    if (msg.includes('ENOENT') || msg.includes('not found')) {
       return {
         error:
           "VS Code CLI not found. Run 'Shell Command: Install code command in PATH' from the VS Code command palette.",

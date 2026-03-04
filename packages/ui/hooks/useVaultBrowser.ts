@@ -6,8 +6,8 @@
  * expanded folders and the currently active file.
  */
 
-import { useState, useCallback } from "react";
-import type { VaultNode } from "../types";
+import { useCallback, useState } from 'react';
+import type { VaultNode } from '../types';
 
 export type { VaultNode };
 
@@ -35,12 +35,12 @@ export function useVaultBrowser(): UseVaultBrowserReturn {
 
     try {
       const res = await fetch(
-        `/api/reference/obsidian/files?vaultPath=${encodeURIComponent(vaultPath)}`
+        `/api/reference/obsidian/files?vaultPath=${encodeURIComponent(vaultPath)}`,
       );
       const data = await res.json();
 
       if (!res.ok || data.error) {
-        setError(data.error || "Failed to load vault");
+        setError(data.error || 'Failed to load vault');
         return;
       }
 
@@ -48,11 +48,11 @@ export function useVaultBrowser(): UseVaultBrowserReturn {
 
       // Auto-expand root-level folders
       const rootFolders = (data.tree as VaultNode[])
-        .filter((n) => n.type === "folder")
+        .filter((n) => n.type === 'folder')
         .map((n) => n.path);
       setExpandedFolders(new Set(rootFolders));
     } catch {
-      setError("Failed to connect to server");
+      setError('Failed to connect to server');
     } finally {
       setIsLoading(false);
     }

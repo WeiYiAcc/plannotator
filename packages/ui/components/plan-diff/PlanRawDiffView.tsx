@@ -6,15 +6,16 @@
  * colored backgrounds.
  */
 
-import React, { useMemo } from "react";
-import type { PlanDiffBlock } from "../../utils/planDiffEngine";
+import type React from 'react';
+import { useMemo } from 'react';
+import type { PlanDiffBlock } from '../../utils/planDiffEngine';
 
 interface PlanRawDiffViewProps {
   blocks: PlanDiffBlock[];
 }
 
 interface DiffLine {
-  type: "added" | "removed" | "unchanged";
+  type: 'added' | 'removed' | 'unchanged';
   content: string;
   lineNumber: number | null;
 }
@@ -25,37 +26,37 @@ export const PlanRawDiffView: React.FC<PlanRawDiffViewProps> = ({ blocks }) => {
     let lineNum = 1;
 
     for (const block of blocks) {
-      const rawLines = block.content.split("\n");
+      const rawLines = block.content.split('\n');
       // Remove trailing empty string from split
-      if (rawLines.length > 0 && rawLines[rawLines.length - 1] === "") {
+      if (rawLines.length > 0 && rawLines[rawLines.length - 1] === '') {
         rawLines.pop();
       }
 
-      if (block.type === "modified" && block.oldContent) {
+      if (block.type === 'modified' && block.oldContent) {
         // Show old content as removed
-        const oldLines = block.oldContent.split("\n");
-        if (oldLines.length > 0 && oldLines[oldLines.length - 1] === "") {
+        const oldLines = block.oldContent.split('\n');
+        if (oldLines.length > 0 && oldLines[oldLines.length - 1] === '') {
           oldLines.pop();
         }
         for (const line of oldLines) {
-          result.push({ type: "removed", content: line, lineNumber: null });
+          result.push({ type: 'removed', content: line, lineNumber: null });
         }
         // Show new content as added
         for (const line of rawLines) {
-          result.push({ type: "added", content: line, lineNumber: lineNum++ });
+          result.push({ type: 'added', content: line, lineNumber: lineNum++ });
         }
-      } else if (block.type === "added") {
+      } else if (block.type === 'added') {
         for (const line of rawLines) {
-          result.push({ type: "added", content: line, lineNumber: lineNum++ });
+          result.push({ type: 'added', content: line, lineNumber: lineNum++ });
         }
-      } else if (block.type === "removed") {
+      } else if (block.type === 'removed') {
         for (const line of rawLines) {
-          result.push({ type: "removed", content: line, lineNumber: null });
+          result.push({ type: 'removed', content: line, lineNumber: null });
         }
       } else {
         for (const line of rawLines) {
           result.push({
-            type: "unchanged",
+            type: 'unchanged',
             content: line,
             lineNumber: lineNum++,
           });
@@ -73,27 +74,23 @@ export const PlanRawDiffView: React.FC<PlanRawDiffViewProps> = ({ blocks }) => {
           <div
             key={index}
             className={`flex px-4 py-0.5 ${
-              line.type === "added"
-                ? "plan-diff-line-added"
-                : line.type === "removed"
-                  ? "plan-diff-line-removed"
-                  : "hover:bg-muted/30"
+              line.type === 'added'
+                ? 'plan-diff-line-added'
+                : line.type === 'removed'
+                  ? 'plan-diff-line-removed'
+                  : 'hover:bg-muted/30'
             }`}
           >
             {/* Gutter: +/- prefix */}
             <div className="w-5 flex-shrink-0 select-none opacity-60 text-right pr-2">
-              {line.type === "added"
-                ? "+"
-                : line.type === "removed"
-                  ? "-"
-                  : " "}
+              {line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' '}
             </div>
             {/* Line number */}
             <div className="w-8 flex-shrink-0 select-none text-muted-foreground/40 text-right pr-3 text-[11px]">
-              {line.lineNumber ?? ""}
+              {line.lineNumber ?? ''}
             </div>
             {/* Content */}
-            <div className="whitespace-pre-wrap break-words min-w-0">{line.content || " "}</div>
+            <div className="whitespace-pre-wrap break-words min-w-0">{line.content || ' '}</div>
           </div>
         ))}
       </div>

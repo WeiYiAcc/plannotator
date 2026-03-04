@@ -6,16 +6,14 @@
  * diff content instead of the annotatable plan.
  */
 
-import React, { useState } from "react";
-import type { PlanDiffBlock, PlanDiffStats } from "../../utils/planDiffEngine";
-import {
-  PlanDiffModeSwitcher,
-  type PlanDiffMode,
-} from "./PlanDiffModeSwitcher";
-import { PlanCleanDiffView } from "./PlanCleanDiffView";
-import { PlanRawDiffView } from "./PlanRawDiffView";
-import { PlanDiffBadge } from "./PlanDiffBadge";
-import { VSCodeIcon } from "./VSCodeIcon";
+import type React from 'react';
+import { useState } from 'react';
+import type { PlanDiffBlock, PlanDiffStats } from '../../utils/planDiffEngine';
+import { PlanCleanDiffView } from './PlanCleanDiffView';
+import { PlanDiffBadge } from './PlanDiffBadge';
+import { type PlanDiffMode, PlanDiffModeSwitcher } from './PlanDiffModeSwitcher';
+import { PlanRawDiffView } from './PlanRawDiffView';
+import { VSCodeIcon } from './VSCodeIcon';
 
 interface PlanDiffViewerProps {
   diffBlocks: PlanDiffBlock[];
@@ -48,17 +46,17 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
     setVscodeDiffLoading(true);
     setVscodeDiffError(null);
     try {
-      const res = await fetch("/api/plan/vscode-diff", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+      const res = await fetch('/api/plan/vscode-diff', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ baseVersion }),
       });
-      const data = await res.json() as { ok?: boolean; error?: string };
+      const data = (await res.json()) as { ok?: boolean; error?: string };
       if (!res.ok || data.error) {
-        setVscodeDiffError(data.error || "Failed to open VS Code diff");
+        setVscodeDiffError(data.error || 'Failed to open VS Code diff');
       }
     } catch {
-      setVscodeDiffError("Failed to connect to server");
+      setVscodeDiffError('Failed to connect to server');
     } finally {
       setVscodeDiffLoading(false);
     }
@@ -117,11 +115,7 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
               stroke="currentColor"
               strokeWidth={2}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M6 18L18 6M6 6l12 12"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
@@ -130,9 +124,7 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
         <div className="mt-6 mb-6 flex items-center gap-3">
           <PlanDiffModeSwitcher mode={diffMode} onChange={onDiffModeChange} />
           {baseVersionLabel && (
-            <span className="text-[10px] text-muted-foreground">
-              vs {baseVersionLabel}
-            </span>
+            <span className="text-[10px] text-muted-foreground">vs {baseVersionLabel}</span>
           )}
           {canOpenVscodeDiff && (
             <button
@@ -143,7 +135,7 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
             >
               <VSCodeIcon className="w-3.5 h-3.5 flex-shrink-0" />
               <span className="hidden md:inline">
-                {vscodeDiffLoading ? "Opening..." : "VS Code"}
+                {vscodeDiffLoading ? 'Opening...' : 'VS Code'}
               </span>
             </button>
           )}
@@ -163,7 +155,7 @@ export const PlanDiffViewer: React.FC<PlanDiffViewerProps> = ({
         )}
 
         {/* Diff content */}
-        {diffMode === "clean" ? (
+        {diffMode === 'clean' ? (
           <PlanCleanDiffView blocks={diffBlocks} />
         ) : (
           <PlanRawDiffView blocks={diffBlocks} />

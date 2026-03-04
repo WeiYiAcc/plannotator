@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 
 /**
  * Renders simple inline markdown: `code`, **bold**, *italic*, and
@@ -20,7 +20,7 @@ export function renderInlineMarkdown(text: string): React.ReactNode[] {
       nodes.push(
         <pre key={key++} className="inline-code-block">
           <code>{code.trim()}</code>
-        </pre>
+        </pre>,
       );
     } else {
       // Process inline markdown
@@ -49,7 +49,11 @@ function renderInline(text: string, startKey: number): React.ReactNode[] {
 
     const token = match[0];
     if (token.startsWith('`')) {
-      nodes.push(<code key={key++} className="inline-code">{token.slice(1, -1)}</code>);
+      nodes.push(
+        <code key={key++} className="inline-code">
+          {token.slice(1, -1)}
+        </code>,
+      );
     } else if (token.startsWith('**')) {
       nodes.push(<strong key={key++}>{token.slice(2, -2)}</strong>);
     } else if (token.startsWith('*')) {

@@ -5,17 +5,12 @@
  * Used by both Claude Code hook and OpenCode plugin.
  */
 
-import { $ } from "bun";
+import { $ } from 'bun';
 
-export type DiffType =
-  | "uncommitted"
-  | "staged"
-  | "unstaged"
-  | "last-commit"
-  | "branch";
+export type DiffType = 'uncommitted' | 'staged' | 'unstaged' | 'last-commit' | 'branch';
 
 export interface DiffOption {
-  id: DiffType | "separator";
+  id: DiffType | 'separator';
   label: string;
 }
 
@@ -39,7 +34,7 @@ export async function getCurrentBranch(): Promise<string> {
     const result = await $`git rev-parse --abbrev-ref HEAD`.quiet();
     return result.text().trim();
   } catch {
-    return "HEAD"; // Detached HEAD state
+    return 'HEAD'; // Detached HEAD state
   }
 }
 
@@ -54,10 +49,9 @@ export async function getCurrentBranch(): Promise<string> {
 export async function getDefaultBranch(): Promise<string> {
   // Try origin's HEAD first (most reliable for repos with remotes)
   try {
-    const result =
-      await $`git symbolic-ref refs/remotes/origin/HEAD`.quiet();
+    const result = await $`git symbolic-ref refs/remotes/origin/HEAD`.quiet();
     const ref = result.text().trim();
-    return ref.replace("refs/remotes/origin/", "");
+    return ref.replace('refs/remotes/origin/', '');
   } catch {
     // No remote or no HEAD set - check local branches
   }
@@ -65,13 +59,13 @@ export async function getDefaultBranch(): Promise<string> {
   // Fallback: check if main exists locally
   try {
     await $`git show-ref --verify refs/heads/main`.quiet();
-    return "main";
+    return 'main';
   } catch {
     // main doesn't exist
   }
 
   // Final fallback
-  return "master";
+  return 'master';
 }
 
 /**
@@ -84,13 +78,13 @@ export async function getGitContext(): Promise<GitContext> {
   ]);
 
   const diffOptions: DiffOption[] = [
-    { id: "uncommitted", label: "Uncommitted changes" },
-    { id: "last-commit", label: "Last commit" },
+    { id: 'uncommitted', label: 'Uncommitted changes' },
+    { id: 'last-commit', label: 'Last commit' },
   ];
 
   // Only show branch diff if not on default branch
   if (currentBranch !== defaultBranch) {
-    diffOptions.push({ id: "branch", label: `vs ${defaultBranch}` });
+    diffOptions.push({ id: 'branch', label: `vs ${defaultBranch}` });
   }
 
   return { currentBranch, defaultBranch, diffOptions };
@@ -101,47 +95,49 @@ export async function getGitContext(): Promise<GitContext> {
  */
 export async function runGitDiff(
   diffType: DiffType,
-  defaultBranch: string = "main"
+  defaultBranch: string = 'main',
 ): Promise<DiffResult> {
   let patch: string;
   let label: string;
 
   try {
     switch (diffType) {
-      case "uncommitted":
+      case 'uncommitted':
         patch = (await $`git diff HEAD --src-prefix=a/ --dst-prefix=b/`.quiet()).text();
-        label = "Uncommitted changes";
+        label = 'Uncommitted changes';
         break;
 
-      case "staged":
+      case 'staged':
         patch = (await $`git diff --staged --src-prefix=a/ --dst-prefix=b/`.quiet()).text();
-        label = "Staged changes";
+        label = 'Staged changes';
         break;
 
-      case "unstaged":
+      case 'unstaged':
         patch = (await $`git diff --src-prefix=a/ --dst-prefix=b/`.quiet()).text();
-        label = "Unstaged changes";
+        label = 'Unstaged changes';
         break;
 
-      case "last-commit":
+      case 'last-commit':
         patch = (await $`git diff HEAD~1..HEAD --src-prefix=a/ --dst-prefix=b/`.quiet()).text();
-        label = "Last commit";
+        label = 'Last commit';
         break;
 
-      case "branch":
-        patch = (await $`git diff ${defaultBranch}..HEAD --src-prefix=a/ --dst-prefix=b/`.quiet()).text();
+      case 'branch':
+        patch = (
+          await $`git diff ${defaultBranch}..HEAD --src-prefix=a/ --dst-prefix=b/`.quiet()
+        ).text();
         label = `Changes vs ${defaultBranch}`;
         break;
 
       default:
-        patch = "";
-        label = "Unknown diff type";
+        patch = '';
+        label = 'Unknown diff type';
     }
   } catch (error) {
     // Handle errors gracefully (e.g., no commits yet, invalid ref)
     console.error(`Git diff error for ${diffType}:`, error);
     const errorMessage = error instanceof Error ? error.message : String(error);
-    patch = "";
+    patch = '';
     label = `Error: ${diffType}`;
     return { patch, label, error: errorMessage };
   }

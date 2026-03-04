@@ -16,7 +16,7 @@ const DEFAULT_REMOTE_PORT = 19432;
 export function isRemoteSession(): boolean {
   // New preferred env var
   const remote = process.env.PLANNOTATOR_REMOTE;
-  if (remote === "1" || remote?.toLowerCase() === "true") {
+  if (remote === '1' || remote?.toLowerCase() === 'true') {
     return true;
   }
 
@@ -36,12 +36,10 @@ export function getServerPort(): number {
   const envPort = process.env.PLANNOTATOR_PORT;
   if (envPort) {
     const parsed = parseInt(envPort, 10);
-    if (!isNaN(parsed) && parsed > 0 && parsed < 65536) {
+    if (!Number.isNaN(parsed) && parsed > 0 && parsed < 65536) {
       return parsed;
     }
-    console.error(
-      `[Plannotator] Warning: Invalid PLANNOTATOR_PORT "${envPort}", using default`
-    );
+    console.error(`[Plannotator] Warning: Invalid PLANNOTATOR_PORT "${envPort}", using default`);
   }
 
   // Remote sessions use fixed port for port forwarding; local uses random

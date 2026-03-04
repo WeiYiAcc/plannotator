@@ -203,23 +203,27 @@ export function devMockApi(): Plugin {
       server.middlewares.use((req, res, next) => {
         if (req.url === '/api/plan') {
           res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({
-            plan: undefined, // Let editor use its own PLAN_CONTENT
-            origin: 'claude-code',
-            previousPlan: PLAN_V2,
-            versionInfo: { version: 3, totalVersions: 3, project: 'demo' },
-            sharingEnabled: true,
-          }));
+          res.end(
+            JSON.stringify({
+              plan: undefined, // Let editor use its own PLAN_CONTENT
+              origin: 'claude-code',
+              previousPlan: PLAN_V2,
+              versionInfo: { version: 3, totalVersions: 3, project: 'demo' },
+              sharingEnabled: true,
+            }),
+          );
           return;
         }
 
         if (req.url === '/api/plan/versions') {
           res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({
-            project: 'demo',
-            slug: 'implementation-plan-real-time-collab',
-            versions,
-          }));
+          res.end(
+            JSON.stringify({
+              project: 'demo',
+              slug: 'implementation-plan-real-time-collab',
+              versions,
+            }),
+          );
           return;
         }
 
@@ -239,14 +243,18 @@ export function devMockApi(): Plugin {
 
         if (req.url === '/api/plan/history') {
           res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({
-            project: 'demo',
-            plans: [{
-              slug: 'implementation-plan-real-time-collab',
-              versions: 3,
-              lastModified: new Date(now - 60_000).toISOString(),
-            }],
-          }));
+          res.end(
+            JSON.stringify({
+              project: 'demo',
+              plans: [
+                {
+                  slug: 'implementation-plan-real-time-collab',
+                  versions: 3,
+                  lastModified: new Date(now - 60_000).toISOString(),
+                },
+              ],
+            }),
+          );
           return;
         }
 

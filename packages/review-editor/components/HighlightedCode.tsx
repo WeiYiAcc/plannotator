@@ -1,9 +1,13 @@
-import React, { useRef, useEffect } from 'react';
 import hljs from 'highlight.js';
+import type React from 'react';
+import { useEffect, useRef } from 'react';
 import 'highlight.js/styles/github-dark.css';
 
 /** Renders a single highlighted code element using highlight.js */
-export const HighlightedCode: React.FC<{ code: string; language?: string }> = ({ code, language }) => {
+export const HighlightedCode: React.FC<{ code: string; language?: string }> = ({
+  code,
+  language,
+}) => {
   const codeRef = useRef<HTMLElement>(null);
 
   useEffect(() => {

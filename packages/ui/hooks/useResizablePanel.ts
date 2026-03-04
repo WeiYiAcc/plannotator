@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { storage } from '../utils/storage';
 
 interface UseResizablePanelOptions {
@@ -52,9 +52,8 @@ export function useResizablePanel({
     if (!isDragging) return;
 
     const onMove = (e: MouseEvent) => {
-      const delta = side === 'right'
-        ? startXRef.current - e.clientX
-        : e.clientX - startXRef.current;
+      const delta =
+        side === 'right' ? startXRef.current - e.clientX : e.clientX - startXRef.current;
       updateWidth(Math.min(maxWidth, Math.max(minWidth, startWidthRef.current + delta)));
     };
 
@@ -79,6 +78,10 @@ export function useResizablePanel({
   return {
     width,
     isDragging,
-    handleProps: { isDragging, onMouseDown: handleMouseDown, onDoubleClick: resetWidth } as ResizeHandleProps,
+    handleProps: {
+      isDragging,
+      onMouseDown: handleMouseDown,
+      onDoubleClick: resetWidth,
+    } as ResizeHandleProps,
   };
 }

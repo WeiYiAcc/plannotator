@@ -9,39 +9,43 @@
  *   PLANNOTATOR_ORIGIN - Origin identifier ("claude-code" or "opencode")
  */
 
-import { isRemoteSession, getServerPort } from "./remote";
-import { openEditorDiff } from "./ide";
-import { handleImageRequest, handleUploadRequest, handleAgentsRequest, handleServerReady } from "./shared-handlers";
-import { handleDocRequest, handleVaultFilesRequest, handleVaultDocRequest } from "./reference-handlers";
+import { openEditorDiff } from './ide';
 import {
-  detectObsidianVaults,
-  saveToObsidian,
-  saveToBear,
-  type ObsidianConfig,
   type BearConfig,
+  detectObsidianVaults,
   type IntegrationResult,
-} from "./integrations";
+  type ObsidianConfig,
+  saveToBear,
+  saveToObsidian,
+} from './integrations';
+import { detectProjectName } from './project';
+import {
+  handleDocRequest,
+  handleVaultDocRequest,
+  handleVaultFilesRequest,
+} from './reference-handlers';
+import { getServerPort, isRemoteSession } from './remote';
+import { getRepoInfo } from './repo';
+import { handleAgentsRequest, handleImageRequest, handleUploadRequest } from './shared-handlers';
 import {
   generateSlug,
-  saveAnnotations,
-  saveFinalSnapshot,
-  saveToHistory,
   getPlanVersion,
   getPlanVersionPath,
   getVersionCount,
-  listVersions,
   listProjectPlans,
-} from "./storage";
-import { getRepoInfo } from "./repo";
-import { detectProjectName } from "./project";
+  listVersions,
+  saveAnnotations,
+  saveFinalSnapshot,
+  saveToHistory,
+} from './storage';
 
+export { openBrowser } from './browser';
+export * from './integrations';
 // Re-export utilities
-export { isRemoteSession, getServerPort } from "./remote";
-export { openBrowser } from "./browser";
-export { handleServerReady } from "./shared-handlers";
-export type { OpencodeClient } from "./shared-handlers";
-export * from "./integrations";
-export * from "./storage";
+export { getServerPort, isRemoteSession } from './remote';
+export type { OpencodeClient } from './shared-handlers';
+export { handleServerReady } from './shared-handlers';
+export * from './storage';
 
 // --- Types ---
 
@@ -99,10 +103,17 @@ const RETRY_DELAY_MS = 500;
  * - Obsidian/Bear integrations
  * - Port conflict retries
  */
-export async function startPlannotatorServer(
-  options: ServerOptions
-): Promise<ServerResult> {
-  const { plan, origin, htmlContent, permissionMode, sharingEnabled = true, shareBaseUrl, pasteApiUrl, onReady } = options;
+export async function startPlannotatorServer(options: ServerOptions): Promise<ServerResult> {
+  const {
+    plan,
+    origin,
+    htmlContent,
+    permissionMode,
+    sharingEnabled = true,
+    shareBaseUrl,
+    pasteApiUrl,
+    onReady,
+  } = options;
 
   const isRemote = isRemoteSession();
   const configuredPort = getServerPort();
@@ -114,19 +125,16 @@ export async function startPlannotatorServer(
   const repoInfo = await getRepoInfo();
 
   // Version history: save plan and detect previous version
-  const project = (await detectProjectName()) ?? "_unknown";
+  const project = (await detectProjectName()) ?? '_unknown';
   const historyResult = saveToHistory(project, slug, plan);
   const currentPlanPath = historyResult.path;
   const previousPlan =
-    historyResult.version > 1
-      ? getPlanVersion(project, slug, historyResult.version - 1)
-      : null;
+    historyResult.version > 1 ? getPlanVersion(project, slug, historyResult.version - 1) : null;
   const versionInfo = {
     version: historyResult.version,
     totalVersions: getVersionCount(project, slug),
     project,
   };
-
 
   // Decision promise
   let resolveDecision: (result: {
@@ -158,24 +166,24 @@ export async function startPlannotatorServer(
           const url = new URL(req.url);
 
           // API: Get a specific plan version from history
-          if (url.pathname === "/api/plan/version") {
-            const vParam = url.searchParams.get("v");
+          if (url.pathname === '/api/plan/version') {
+            const vParam = url.searchParams.get('v');
             if (!vParam) {
-              return new Response("Missing v parameter", { status: 400 });
+              return new Response('Missing v parameter', { status: 400 });
             }
             const v = parseInt(vParam, 10);
-            if (isNaN(v) || v < 1) {
-              return new Response("Invalid version number", { status: 400 });
+            if (Number.isNaN(v) || v < 1) {
+              return new Response('Invalid version number', { status: 400 });
             }
             const content = getPlanVersion(project, slug, v);
             if (content === null) {
-              return Response.json({ error: "Version not found" }, { status: 404 });
+              return Response.json({ error: 'Version not found' }, { status: 404 });
             }
             return Response.json({ plan: content, version: v });
           }
 
           // API: List all versions for the current plan
-          if (url.pathname === "/api/plan/versions") {
+          if (url.pathname === '/api/plan/versions') {
             return Response.json({
               project,
               slug,
@@ -184,7 +192,7 @@ export async function startPlannotatorServer(
           }
 
           // API: List all plans in the current project
-          if (url.pathname === "/api/plan/history") {
+          if (url.pathname === '/api/plan/history') {
             return Response.json({
               project,
               plans: listProjectPlans(project),
@@ -192,73 +200,86 @@ export async function startPlannotatorServer(
           }
 
           // API: Get plan content
-          if (url.pathname === "/api/plan") {
-            return Response.json({ plan, origin, permissionMode, sharingEnabled, shareBaseUrl, pasteApiUrl, repoInfo, previousPlan, versionInfo });
+          if (url.pathname === '/api/plan') {
+            return Response.json({
+              plan,
+              origin,
+              permissionMode,
+              sharingEnabled,
+              shareBaseUrl,
+              pasteApiUrl,
+              repoInfo,
+              previousPlan,
+              versionInfo,
+            });
           }
 
           // API: Serve a linked markdown document
-          if (url.pathname === "/api/doc" && req.method === "GET") {
+          if (url.pathname === '/api/doc' && req.method === 'GET') {
             return handleDocRequest(url);
           }
 
           // API: Serve images (local paths or temp uploads)
-          if (url.pathname === "/api/image") {
+          if (url.pathname === '/api/image') {
             return handleImageRequest(url);
           }
 
           // API: Upload image -> save to temp -> return path
-          if (url.pathname === "/api/upload" && req.method === "POST") {
+          if (url.pathname === '/api/upload' && req.method === 'POST') {
             return handleUploadRequest(req);
           }
 
           // API: Open plan diff in VS Code
-          if (url.pathname === "/api/plan/vscode-diff" && req.method === "POST") {
+          if (url.pathname === '/api/plan/vscode-diff' && req.method === 'POST') {
             try {
               const body = (await req.json()) as { baseVersion: number };
 
               if (!body.baseVersion) {
-                return Response.json({ error: "Missing baseVersion" }, { status: 400 });
+                return Response.json({ error: 'Missing baseVersion' }, { status: 400 });
               }
 
               const basePath = getPlanVersionPath(project, slug, body.baseVersion);
               if (!basePath) {
-                return Response.json({ error: `Version ${body.baseVersion} not found` }, { status: 404 });
+                return Response.json(
+                  { error: `Version ${body.baseVersion} not found` },
+                  { status: 404 },
+                );
               }
 
               const result = await openEditorDiff(basePath, currentPlanPath);
-              if ("error" in result) {
+              if ('error' in result) {
                 return Response.json({ error: result.error }, { status: 500 });
               }
               return Response.json({ ok: true });
             } catch (err) {
-              const message = err instanceof Error ? err.message : "Failed to open VS Code diff";
+              const message = err instanceof Error ? err.message : 'Failed to open VS Code diff';
               return Response.json({ error: message }, { status: 500 });
             }
           }
 
           // API: Detect Obsidian vaults
-          if (url.pathname === "/api/obsidian/vaults") {
+          if (url.pathname === '/api/obsidian/vaults') {
             const vaults = detectObsidianVaults();
             return Response.json({ vaults });
           }
 
           // API: List Obsidian vault files as a tree
-          if (url.pathname === "/api/reference/obsidian/files" && req.method === "GET") {
+          if (url.pathname === '/api/reference/obsidian/files' && req.method === 'GET') {
             return handleVaultFilesRequest(url);
           }
 
           // API: Read an Obsidian vault document
-          if (url.pathname === "/api/reference/obsidian/doc" && req.method === "GET") {
+          if (url.pathname === '/api/reference/obsidian/doc' && req.method === 'GET') {
             return handleVaultDocRequest(url);
           }
 
           // API: Get available agents (OpenCode only)
-          if (url.pathname === "/api/agents") {
+          if (url.pathname === '/api/agents') {
             return handleAgentsRequest(options.opencodeClient);
           }
 
           // API: Save to notes (decoupled from approve/deny)
-          if (url.pathname === "/api/save-notes" && req.method === "POST") {
+          if (url.pathname === '/api/save-notes' && req.method === 'POST') {
             const results: { obsidian?: IntegrationResult; bear?: IntegrationResult } = {};
 
             try {
@@ -286,14 +307,14 @@ export async function startPlannotatorServer(
               }
             } catch (err) {
               console.error(`[Save Notes] Error:`, err);
-              return Response.json({ error: "Save failed" }, { status: 500 });
+              return Response.json({ error: 'Save failed' }, { status: 500 });
             }
 
             return Response.json({ ok: true, results });
           }
 
           // API: Approve plan
-          if (url.pathname === "/api/approve" && req.method === "POST") {
+          if (url.pathname === '/api/approve' && req.method === 'POST') {
             // Check for note integrations and optional feedback
             let feedback: string | undefined;
             let agentSwitch: string | undefined;
@@ -358,22 +379,34 @@ export async function startPlannotatorServer(
             // Save annotations and final snapshot (if enabled)
             let savedPath: string | undefined;
             if (planSaveEnabled) {
-              const annotations = feedback || "";
+              const annotations = feedback || '';
               if (annotations) {
                 saveAnnotations(slug, annotations, planSaveCustomPath);
               }
-              savedPath = saveFinalSnapshot(slug, "approved", plan, annotations, planSaveCustomPath);
+              savedPath = saveFinalSnapshot(
+                slug,
+                'approved',
+                plan,
+                annotations,
+                planSaveCustomPath,
+              );
             }
 
             // Use permission mode from client request if provided, otherwise fall back to hook input
             const effectivePermissionMode = requestedPermissionMode || permissionMode;
-            resolveDecision({ approved: true, feedback, savedPath, agentSwitch, permissionMode: effectivePermissionMode });
+            resolveDecision({
+              approved: true,
+              feedback,
+              savedPath,
+              agentSwitch,
+              permissionMode: effectivePermissionMode,
+            });
             return Response.json({ ok: true, savedPath });
           }
 
           // API: Deny with feedback
-          if (url.pathname === "/api/deny" && req.method === "POST") {
-            let feedback = "Plan rejected by user";
+          if (url.pathname === '/api/deny' && req.method === 'POST') {
+            let feedback = 'Plan rejected by user';
             let planSaveEnabled = true; // default to enabled for backwards compat
             let planSaveCustomPath: string | undefined;
             try {
@@ -396,7 +429,7 @@ export async function startPlannotatorServer(
             let savedPath: string | undefined;
             if (planSaveEnabled) {
               saveAnnotations(slug, feedback, planSaveCustomPath);
-              savedPath = saveFinalSnapshot(slug, "denied", plan, feedback, planSaveCustomPath);
+              savedPath = saveFinalSnapshot(slug, 'denied', plan, feedback, planSaveCustomPath);
             }
 
             resolveDecision({ approved: false, feedback, savedPath });
@@ -405,15 +438,14 @@ export async function startPlannotatorServer(
 
           // Serve embedded HTML for all other routes (SPA)
           return new Response(htmlContent, {
-            headers: { "Content-Type": "text/html" },
+            headers: { 'Content-Type': 'text/html' },
           });
         },
       });
 
       break; // Success, exit retry loop
     } catch (err: unknown) {
-      const isAddressInUse =
-        err instanceof Error && err.message.includes("EADDRINUSE");
+      const isAddressInUse = err instanceof Error && err.message.includes('EADDRINUSE');
 
       if (isAddressInUse && attempt < MAX_RETRIES) {
         await Bun.sleep(RETRY_DELAY_MS);
@@ -421,7 +453,7 @@ export async function startPlannotatorServer(
       }
 
       if (isAddressInUse) {
-        const hint = isRemote ? " (set PLANNOTATOR_PORT to use different port)" : "";
+        const hint = isRemote ? ' (set PLANNOTATOR_PORT to use different port)' : '';
         throw new Error(`Port ${configuredPort} in use after ${MAX_RETRIES} retries${hint}`);
       }
 
@@ -430,7 +462,7 @@ export async function startPlannotatorServer(
   }
 
   if (!server) {
-    throw new Error("Failed to start server");
+    throw new Error('Failed to start server');
   }
 
   const serverUrl = `http://localhost:${server.port}`;
@@ -448,4 +480,3 @@ export async function startPlannotatorServer(
     stop: () => server.stop(),
   };
 }
-

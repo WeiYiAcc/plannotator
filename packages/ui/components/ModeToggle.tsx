@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTheme } from './ThemeProvider';
 
 export function ModeToggle() {
@@ -51,7 +51,10 @@ export function ModeToggle() {
           {(['light', 'dark', 'system'] as const).map((t) => (
             <button
               key={t}
-              onClick={() => { setTheme(t); setIsOpen(false); }}
+              onClick={() => {
+                setTheme(t);
+                setIsOpen(false);
+              }}
               className={`w-full px-3 py-1.5 text-left text-xs capitalize transition-colors ${
                 theme === t
                   ? 'text-primary bg-primary/10 font-medium'

@@ -10,13 +10,10 @@
  *   3. Prints the feedback result when submitted
  */
 
-import {
-  startReviewServer,
-  handleReviewServerReady,
-} from "@plannotator/server/review";
+import { handleReviewServerReady, startReviewServer } from '@plannotator/server/review';
 
-// @ts-ignore - Bun import attribute for text
-import html from "../../apps/review/dist/index.html" with { type: "text" };
+// @ts-expect-error - Bun import attribute for text
+import html from '../../apps/review/dist/index.html' with { type: 'text' };
 
 // Sample git diff for testing
 const sampleDiff = `diff --git a/src/utils/parser.ts b/src/utils/parser.ts
@@ -89,12 +86,12 @@ index 1111111..2222222 100644
      "react": "^18.2.0"
 `;
 
-console.error("Starting Code Review server with OpenCode origin...");
+console.error('Starting Code Review server with OpenCode origin...');
 
 const server = await startReviewServer({
   rawPatch: sampleDiff,
-  gitRef: "working tree",
-  origin: "opencode",
+  gitRef: 'working tree',
+  origin: 'opencode',
   htmlContent: html as unknown as string,
   onReady: (url, isRemote, port) => handleReviewServerReady(url, isRemote, port),
 });

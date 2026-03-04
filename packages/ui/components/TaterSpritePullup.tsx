@@ -1,4 +1,4 @@
-import React from 'react';
+import type React from 'react';
 import spriteSheet from '../sprite_package_pulluphang/sprite.png';
 
 // Sprite specs: 96x96 native, 24 frames, 3 seconds

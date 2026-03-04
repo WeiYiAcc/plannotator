@@ -22,7 +22,11 @@ export interface PermissionModeSettings {
   configured: boolean; // Whether user has explicitly set this
 }
 
-export const PERMISSION_MODE_OPTIONS: { value: PermissionMode; label: string; description: string }[] = [
+export const PERMISSION_MODE_OPTIONS: {
+  value: PermissionMode;
+  label: string;
+  description: string;
+}[] = [
   {
     value: 'acceptEdits',
     label: 'Auto-accept Edits',

@@ -5,7 +5,7 @@ export function extractLinesFromPatch(
   patch: string,
   lineStart: number,
   lineEnd: number,
-  side: 'old' | 'new'
+  side: 'old' | 'new',
 ): string {
   const lines = patch.split('\n');
   const result: string[] = [];
@@ -23,8 +23,12 @@ export function extractLinesFromPatch(
     }
 
     // Skip diff headers
-    if (line.startsWith('diff ') || line.startsWith('index ') ||
-        line.startsWith('--- ') || line.startsWith('+++ ')) {
+    if (
+      line.startsWith('diff ') ||
+      line.startsWith('index ') ||
+      line.startsWith('--- ') ||
+      line.startsWith('+++ ')
+    ) {
       continue;
     }
 

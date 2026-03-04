@@ -1,6 +1,6 @@
-import { mkdirSync, readdirSync, readFileSync, unlinkSync } from "fs";
-import { join, resolve } from "path";
-import type { PasteStore } from "../core/storage";
+import { mkdirSync, readdirSync, readFileSync, unlinkSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import type { PasteStore } from '../core/storage';
 
 interface PasteFile {
   data: string;
@@ -19,7 +19,7 @@ export class FsPasteStore implements PasteStore {
   private safePath(id: string): string {
     const filePath = resolve(join(this.dataDir, `${id}.json`));
     if (!filePath.startsWith(this.resolvedDir)) {
-      throw new Error("Invalid paste ID");
+      throw new Error('Invalid paste ID');
     }
     return filePath;
   }
@@ -49,12 +49,12 @@ export class FsPasteStore implements PasteStore {
   /** Delete expired pastes on startup */
   private sweep(): void {
     try {
-      const files = readdirSync(this.dataDir).filter((f) => f.endsWith(".json"));
+      const files = readdirSync(this.dataDir).filter((f) => f.endsWith('.json'));
       const now = Date.now();
       for (const file of files) {
         const path = join(this.dataDir, file);
         try {
-          const raw = readFileSync(path, "utf-8");
+          const raw = readFileSync(path, 'utf-8');
           const entry: PasteFile = JSON.parse(raw);
           if (now > entry.expiresAt) {
             unlinkSync(path);

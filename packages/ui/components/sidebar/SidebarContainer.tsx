@@ -5,14 +5,14 @@
  * Tab bar at top switches between them.
  */
 
-import React from "react";
-import type { SidebarTab } from "../../hooks/useSidebar";
-import type { Block, Annotation } from "../../types";
-import type { VersionInfo, VersionEntry, ProjectPlan } from "../../hooks/usePlanDiff";
-import type { UseVaultBrowserReturn } from "../../hooks/useVaultBrowser";
-import { TableOfContents } from "../TableOfContents";
-import { VersionBrowser } from "./VersionBrowser";
-import { VaultBrowser } from "./VaultBrowser";
+import type React from 'react';
+import type { ProjectPlan, VersionEntry, VersionInfo } from '../../hooks/usePlanDiff';
+import type { SidebarTab } from '../../hooks/useSidebar';
+import type { UseVaultBrowserReturn } from '../../hooks/useVaultBrowser';
+import type { Annotation, Block } from '../../types';
+import { TableOfContents } from '../TableOfContents';
+import { VaultBrowser } from './VaultBrowser';
+import { VersionBrowser } from './VersionBrowser';
 
 interface SidebarContainerProps {
   activeTab: SidebarTab;
@@ -86,8 +86,8 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
       {/* Tab bar */}
       <div className="flex items-center border-b border-border/50 px-1 py-1 gap-0.5 flex-shrink-0">
         <TabButton
-          active={activeTab === "toc"}
-          onClick={() => onTabChange("toc")}
+          active={activeTab === 'toc'}
+          onClick={() => onTabChange('toc')}
           icon={
             <svg
               className="w-3 h-3"
@@ -106,8 +106,8 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
           label="Contents"
         />
         <TabButton
-          active={activeTab === "versions"}
-          onClick={() => onTabChange("versions")}
+          active={activeTab === 'versions'}
+          onClick={() => onTabChange('versions')}
           icon={
             <svg
               className="w-3 h-3"
@@ -127,8 +127,8 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
         />
         {showVaultTab && (
           <TabButton
-            active={activeTab === "vault"}
-            onClick={() => onTabChange("vault")}
+            active={activeTab === 'vault'}
+            onClick={() => onTabChange('vault')}
             icon={
               <svg
                 className="w-3 h-3"
@@ -160,18 +160,14 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
             stroke="currentColor"
             strokeWidth={2}
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M15 19l-7-7 7-7"
-            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
         </button>
       </div>
 
       {/* Content area */}
       <div className="flex-1 overflow-y-auto">
-        {activeTab === "toc" && (
+        {activeTab === 'toc' && (
           <TableOfContents
             blocks={blocks}
             annotations={annotations}
@@ -182,7 +178,7 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
             onLinkedDocBack={onLinkedDocBack}
           />
         )}
-        {activeTab === "versions" && (
+        {activeTab === 'versions' && (
           <VersionBrowser
             versionInfo={versionInfo}
             versions={versions}
@@ -199,7 +195,7 @@ export const SidebarContainer: React.FC<SidebarContainerProps> = ({
             onFetchProjectPlans={onFetchProjectPlans}
           />
         )}
-        {activeTab === "vault" && showVaultTab && vaultPath && vaultBrowser && (
+        {activeTab === 'vault' && showVaultTab && vaultPath && vaultBrowser && (
           <VaultBrowser
             vaultPath={vaultPath}
             tree={vaultBrowser.tree}
@@ -227,8 +223,8 @@ const TabButton: React.FC<{
     onClick={onClick}
     className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium transition-colors ${
       active
-        ? "bg-primary/10 text-primary"
-        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+        ? 'bg-primary/10 text-primary'
+        : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
     }`}
   >
     {icon}

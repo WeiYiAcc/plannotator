@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { getAutoCloseDelay, setAutoCloseDelay } from '../utils/storage';
 
 /**
@@ -63,7 +63,10 @@ export function useAutoClose(active: boolean): UseAutoCloseReturn {
       return;
     }
     const timer = setTimeout(
-      () => setState((prev) => (prev.phase === 'counting' ? { phase: 'counting', remaining: prev.remaining - 1 } : prev)),
+      () =>
+        setState((prev) =>
+          prev.phase === 'counting' ? { phase: 'counting', remaining: prev.remaining - 1 } : prev,
+        ),
       1000,
     );
     return () => clearTimeout(timer);

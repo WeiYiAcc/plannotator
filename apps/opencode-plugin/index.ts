@@ -12,28 +12,21 @@
  * @packageDocumentation
  */
 
-import { type Plugin, tool } from "@opencode-ai/plugin";
-import {
-  startPlannotatorServer,
-  handleServerReady,
-} from "@plannotator/server";
-import {
-  startReviewServer,
-  handleReviewServerReady,
-} from "@plannotator/server/review";
-import {
-  startAnnotateServer,
-  handleAnnotateServerReady,
-} from "@plannotator/server/annotate";
-import { getGitContext, runGitDiff } from "@plannotator/server/git";
-import { writeRemoteShareLink } from "@plannotator/server/share-url";
+import { type Plugin, tool } from '@opencode-ai/plugin';
+import { handleServerReady, startPlannotatorServer } from '@plannotator/server';
+import { handleAnnotateServerReady, startAnnotateServer } from '@plannotator/server/annotate';
+import { getGitContext, runGitDiff } from '@plannotator/server/git';
+import { handleReviewServerReady, startReviewServer } from '@plannotator/server/review';
+import { writeRemoteShareLink } from '@plannotator/server/share-url';
 
-// @ts-ignore - Bun import attribute for text
-import indexHtml from "./plannotator.html" with { type: "text" };
+// @ts-expect-error - Bun import attribute for text
+import indexHtml from './plannotator.html' with { type: 'text' };
+
 const htmlContent = indexHtml as unknown as string;
 
-// @ts-ignore - Bun import attribute for text
-import reviewHtml from "./review-editor.html" with { type: "text" };
+// @ts-expect-error - Bun import attribute for text
+import reviewHtml from './review-editor.html' with { type: 'text' };
+
 const reviewHtmlContent = reviewHtml as unknown as string;
 
 export const PlannotatorPlugin: Plugin = async (ctx) => {
@@ -43,16 +36,16 @@ export const PlannotatorPlugin: Plugin = async (ctx) => {
     try {
       const response = await ctx.client.config.get({ query: { directory: ctx.directory } });
       // Config is wrapped in response.data
-      // @ts-ignore - share config may exist
+      // @ts-expect-error - share config may exist
       const share = response?.data?.share;
       if (share !== undefined) {
-        return share !== "disabled";
+        return share !== 'disabled';
       }
     } catch {
       // Config read failed, fall through to env var
     }
     // Fall back to env var
-    return process.env.PLANNOTATOR_SHARE !== "disabled";
+    return process.env.PLANNOTATOR_SHARE !== 'disabled';
   }
 
   // Custom share portal URL for self-hosting
@@ -64,26 +57,29 @@ export const PlannotatorPlugin: Plugin = async (ctx) => {
     // Register submit_plan as primary-only tool (hidden from sub-agents)
     config: async (opencodeConfig) => {
       const existingPrimaryTools = opencodeConfig.experimental?.primary_tools ?? [];
-      if (!existingPrimaryTools.includes("submit_plan")) {
+      if (!existingPrimaryTools.includes('submit_plan')) {
         opencodeConfig.experimental = {
           ...opencodeConfig.experimental,
-          primary_tools: [...existingPrimaryTools, "submit_plan"],
+          primary_tools: [...existingPrimaryTools, 'submit_plan'],
         };
       }
     },
 
     // Inject planning instructions into system prompt
-    "experimental.chat.system.transform": async (input, output) => {
+    'experimental.chat.system.transform': async (input, output) => {
       // Skip for title generation requests
-      const existingSystem = output.system.join("\n").toLowerCase();
-      if (existingSystem.includes("title generator") || existingSystem.includes("generate a title")) {
+      const existingSystem = output.system.join('\n').toLowerCase();
+      if (
+        existingSystem.includes('title generator') ||
+        existingSystem.includes('generate a title')
+      ) {
         return;
       }
 
       try {
         // Fetch session messages to determine current agent
         const messagesResponse = await ctx.client.session.messages({
-          path: { id: input.sessionID }
+          path: { id: input.sessionID },
         });
         const messages = messagesResponse.data;
 
@@ -92,8 +88,8 @@ export const PlannotatorPlugin: Plugin = async (ctx) => {
         if (messages) {
           for (let i = messages.length - 1; i >= 0; i--) {
             const msg = messages[i];
-            if (msg.info.role === "user") {
-              // @ts-ignore - UserMessage has agent field
+            if (msg.info.role === 'user') {
+              // @ts-expect-error - UserMessage has agent field
               lastUserAgent = msg.info.agent;
               break;
             }
@@ -104,19 +100,18 @@ export const PlannotatorPlugin: Plugin = async (ctx) => {
         if (!lastUserAgent) return;
 
         // Hardcoded exclusion: build agent
-        if (lastUserAgent === "build") return;
+        if (lastUserAgent === 'build') return;
 
         // Dynamic exclusion: check agent mode via API
         const agentsResponse = await ctx.client.app.agents({
-          query: { directory: ctx.directory }
+          query: { directory: ctx.directory },
         });
         const agents = agentsResponse.data;
         const agent = agents?.find((a: { name: string }) => a.name === lastUserAgent);
 
         // Skip if agent is a sub-agent
-        // @ts-ignore - Agent has mode field
-        if (agent?.mode === "subagent") return;
-
+        // @ts-expect-error - Agent has mode field
+        if (agent?.mode === 'subagent') return;
       } catch {
         // Skip injection on any error (safer)
         return;
@@ -143,35 +138,35 @@ Do NOT proceed with implementation until your plan is approved.
     event: async ({ event }) => {
       // Check for command execution event
       const isCommandEvent =
-        event.type === "command.executed" ||
-        event.type === "tui.command.execute";
+        event.type === 'command.executed' || event.type === 'tui.command.execute';
 
-      // @ts-ignore - Event structure: event.properties.name for command.executed
+      // @ts-expect-error - Event structure: event.properties.name for command.executed
       const commandName = event.properties?.name || event.command || event.payload?.name;
-      const isReviewCommand = commandName === "plannotator-review";
+      const isReviewCommand = commandName === 'plannotator-review';
 
       if (isCommandEvent && isReviewCommand) {
         ctx.client.app.log({
-          level: "info",
-          message: "Opening code review UI...",
+          level: 'info',
+          message: 'Opening code review UI...',
         });
 
         // Get git context (branches, available diff options)
         const gitContext = await getGitContext();
 
         // Run git diff HEAD (uncommitted changes - default)
-        const { patch: rawPatch, label: gitRef, error: diffError } = await runGitDiff(
-          "uncommitted",
-          gitContext.defaultBranch
-        );
+        const {
+          patch: rawPatch,
+          label: gitRef,
+          error: diffError,
+        } = await runGitDiff('uncommitted', gitContext.defaultBranch);
 
         // Start server even if empty - user can switch diff types
         const server = await startReviewServer({
           rawPatch,
           gitRef,
           error: diffError,
-          origin: "opencode",
-          diffType: "uncommitted",
+          origin: 'opencode',
+          diffType: 'uncommitted',
           gitContext,
           sharingEnabled: await getSharingEnabled(),
           shareBaseUrl: getShareBaseUrl(),
@@ -186,7 +181,7 @@ Do NOT proceed with implementation until your plan is approved.
 
         // Send feedback back to the session if provided
         if (result.feedback) {
-          // @ts-ignore - Event properties contain sessionID for command.executed events
+          // @ts-expect-error - Event properties contain sessionID for command.executed events
           const sessionId = event.properties?.sessionID;
 
           // Only try to send feedback if we have a valid session ID
@@ -203,7 +198,7 @@ Do NOT proceed with implementation until your plan is approved.
                   ...(shouldSwitchAgent && { agent: targetAgent }),
                   parts: [
                     {
-                      type: "text",
+                      type: 'text',
                       text: `# Code Review Feedback\n\n${result.feedback}\n\nPlease address this feedback.`,
                     },
                   ],
@@ -217,34 +212,34 @@ Do NOT proceed with implementation until your plan is approved.
       }
 
       // Handle /plannotator-annotate command
-      const isAnnotateCommand = commandName === "plannotator-annotate";
+      const isAnnotateCommand = commandName === 'plannotator-annotate';
 
       if (isCommandEvent && isAnnotateCommand) {
-        // @ts-ignore - Event properties contain arguments
-        const filePath = event.properties?.arguments || event.arguments || "";
+        // @ts-expect-error - Event properties contain arguments
+        const filePath = event.properties?.arguments || event.arguments || '';
 
         if (!filePath) {
           ctx.client.app.log({
-            level: "error",
-            message: "Usage: /plannotator-annotate <file.md>",
+            level: 'error',
+            message: 'Usage: /plannotator-annotate <file.md>',
           });
           return;
         }
 
         ctx.client.app.log({
-          level: "info",
+          level: 'info',
           message: `Opening annotation UI for ${filePath}...`,
         });
 
         // Resolve to absolute path
-        const path = await import("path");
+        const path = await import('node:path');
         const absolutePath = path.resolve(filePath);
 
         // Read the markdown file
         const file = Bun.file(absolutePath);
         if (!(await file.exists())) {
           ctx.client.app.log({
-            level: "error",
+            level: 'error',
             message: `File not found: ${absolutePath}`,
           });
           return;
@@ -255,7 +250,7 @@ Do NOT proceed with implementation until your plan is approved.
         const server = await startAnnotateServer({
           markdown,
           filePath: absolutePath,
-          origin: "opencode",
+          origin: 'opencode',
           sharingEnabled: await getSharingEnabled(),
           shareBaseUrl: getShareBaseUrl(),
           htmlContent: htmlContent,
@@ -268,7 +263,7 @@ Do NOT proceed with implementation until your plan is approved.
 
         // Send feedback back to the session if provided
         if (result.feedback) {
-          // @ts-ignore - Event properties contain sessionID for command.executed events
+          // @ts-expect-error - Event properties contain sessionID for command.executed events
           const sessionId = event.properties?.sessionID;
 
           if (sessionId) {
@@ -278,7 +273,7 @@ Do NOT proceed with implementation until your plan is approved.
                 body: {
                   parts: [
                     {
-                      type: "text",
+                      type: 'text',
                       text: `# Markdown Annotations\n\nFile: ${absolutePath}\n\n${result.feedback}\n\nPlease address the annotation feedback above.`,
                     },
                   ],
@@ -295,28 +290,33 @@ Do NOT proceed with implementation until your plan is approved.
     tool: {
       submit_plan: tool({
         description:
-          "Submit your completed plan for interactive user review. The user can annotate, approve, or request changes. Call this when you have finished creating your implementation plan.",
+          'Submit your completed plan for interactive user review. The user can annotate, approve, or request changes. Call this when you have finished creating your implementation plan.',
         args: {
           plan: tool.schema
             .string()
-            .describe("The complete implementation plan in markdown format"),
+            .describe('The complete implementation plan in markdown format'),
           summary: tool.schema
             .string()
-            .describe("A brief 1-2 sentence summary of what the plan accomplishes"),
+            .describe('A brief 1-2 sentence summary of what the plan accomplishes'),
         },
 
         async execute(args, context) {
           const server = await startPlannotatorServer({
             plan: args.plan,
-            origin: "opencode",
+            origin: 'opencode',
             sharingEnabled: await getSharingEnabled(),
             shareBaseUrl: getShareBaseUrl(),
             htmlContent,
             opencodeClient: ctx.client,
             onReady: async (url, isRemote, port) => {
               handleServerReady(url, isRemote, port);
-              if (isRemote && await getSharingEnabled()) {
-                await writeRemoteShareLink(args.plan, getShareBaseUrl(), "review the plan", "plan only").catch(() => {});
+              if (isRemote && (await getSharingEnabled())) {
+                await writeRemoteShareLink(
+                  args.plan,
+                  getShareBaseUrl(),
+                  'review the plan',
+                  'plan only',
+                ).catch(() => {});
               }
             },
           });
@@ -324,11 +324,19 @@ Do NOT proceed with implementation until your plan is approved.
           const PLANNOTATOR_TIMEOUT_MS = 10 * 60 * 1000; // 10min timeout
           let timeoutId: ReturnType<typeof setTimeout>;
           const result = await Promise.race([
-            server.waitForDecision().then((r) => { clearTimeout(timeoutId); return r; }),
+            server.waitForDecision().then((r) => {
+              clearTimeout(timeoutId);
+              return r;
+            }),
             new Promise<{ approved: boolean; feedback?: string }>((resolve) => {
               timeoutId = setTimeout(
-                () => resolve({ approved: false, feedback: "[Plannotator] No response within 10 minutes. Port released automatically. Please call submit_plan again." }),
-                PLANNOTATOR_TIMEOUT_MS
+                () =>
+                  resolve({
+                    approved: false,
+                    feedback:
+                      '[Plannotator] No response within 10 minutes. Port released automatically. Please call submit_plan again.',
+                  }),
+                PLANNOTATOR_TIMEOUT_MS,
               );
             }),
           ]);
@@ -344,7 +352,7 @@ Do NOT proceed with implementation until your plan is approved.
               // Switch TUI display to target agent
               try {
                 await ctx.client.tui.executeCommand({
-                  body: { command: "agent_cycle" },
+                  body: { command: 'agent_cycle' },
                 });
               } catch {
                 // Silently fail
@@ -360,7 +368,7 @@ Do NOT proceed with implementation until your plan is approved.
                   body: {
                     agent: targetAgent,
                     noReply: true,
-                    parts: [{ type: "text", text: "Proceed with implementation" }],
+                    parts: [{ type: 'text', text: 'Proceed with implementation' }],
                   },
                 });
               } catch {
@@ -373,7 +381,7 @@ Do NOT proceed with implementation until your plan is approved.
               return `Plan approved with notes!
 
 Plan Summary: ${args.summary}
-${result.savedPath ? `Saved to: ${result.savedPath}` : ""}
+${result.savedPath ? `Saved to: ${result.savedPath}` : ''}
 
 ## Implementation Notes
 
@@ -387,10 +395,10 @@ Proceed with implementation, incorporating these notes where applicable.`;
             return `Plan approved!
 
 Plan Summary: ${args.summary}
-${result.savedPath ? `Saved to: ${result.savedPath}` : ""}`;
+${result.savedPath ? `Saved to: ${result.savedPath}` : ''}`;
           } else {
             return `Plan needs revision.
-${result.savedPath ? `\nSaved to: ${result.savedPath}` : ""}
+${result.savedPath ? `\nSaved to: ${result.savedPath}` : ''}
 
 The user has requested changes to your plan. Please review their feedback below and revise your plan accordingly.
 

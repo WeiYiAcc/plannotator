@@ -26,6 +26,7 @@ import { getPlanSaveSettings } from '@plannotator/ui/utils/planSave';
 import { getUIPreferences, needsUIFeaturesSetup, type UIPreferences } from '@plannotator/ui/utils/uiPreferences';
 import { getEditorMode, saveEditorMode } from '@plannotator/ui/utils/editorMode';
 import { getInputMethod, saveInputMethod } from '@plannotator/ui/utils/inputMethod';
+import { useInputMethodSwitch } from '@plannotator/ui/hooks/useInputMethodSwitch';
 import { useResizablePanel } from '@plannotator/ui/hooks/useResizablePanel';
 import { ResizeHandle } from '@plannotator/ui/components/ResizeHandle';
 import {
@@ -583,6 +584,9 @@ const App: React.FC = () => {
     setInputMethod(method);
     saveInputMethod(method);
   };
+
+  // Alt/Option key: hold to temporarily switch, double-tap to toggle
+  useInputMethodSwitch(inputMethod, handleInputMethodChange);
 
   // Check if we're in API mode (served from Bun hook server)
   // Skip if we loaded from a shared URL

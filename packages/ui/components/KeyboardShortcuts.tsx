@@ -72,6 +72,8 @@ interface ShortcutSection {
   shortcuts: Shortcut[];
 }
 
+const alt = isMac ? '⌥' : 'Alt';
+
 const planShortcuts: ShortcutSection[] = [
   {
     title: 'Actions',
@@ -79,6 +81,13 @@ const planShortcuts: ShortcutSection[] = [
       { keys: [mod, enter], desc: 'Submit / Approve' },
       { keys: [mod, 'S'], desc: 'Save to notes app' },
       { keys: ['Esc'], desc: 'Close dialog' },
+    ],
+  },
+  {
+    title: 'Input Method',
+    shortcuts: [
+      { keys: [alt, 'hold'], desc: 'Temporarily switch mode', hint: 'Hold to switch between Select and Pinpoint, release to revert' },
+      { keys: [alt, alt], desc: 'Toggle mode', hint: 'Double-tap to permanently switch between Select and Pinpoint' },
     ],
   },
   {

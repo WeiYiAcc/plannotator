@@ -82,6 +82,30 @@ if ($userPath -notlike "*$installDir*") {
     Write-Host "Added to PATH. Restart your terminal for changes to take effect."
 }
 
+# Validate plugin hooks.json if plugin is already installed
+$pluginHooks = if ($env:CLAUDE_CONFIG_DIR) { "$env:CLAUDE_CONFIG_DIR\plugins\marketplaces\plannotator\apps\hook\hooks\hooks.json" } else { "$env:USERPROFILE\.claude\plugins\marketplaces\plannotator\apps\hook\hooks\hooks.json" }
+if (Test-Path $pluginHooks) {
+    @'
+{
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "plannotator",
+            "timeout": 345600
+          }
+        ]
+      }
+    ]
+  }
+}
+'@ | Set-Content -Path $pluginHooks
+    Write-Host "Updated plugin hooks at $pluginHooks"
+}
+
 # Clear OpenCode plugin cache
 Remove-Item -Recurse -Force "$env:USERPROFILE\.cache\opencode\node_modules\@plannotator" -ErrorAction SilentlyContinue
 Remove-Item -Recurse -Force "$env:USERPROFILE\.bun\install\cache\@plannotator" -ErrorAction SilentlyContinue

@@ -127,6 +127,34 @@ if !ERRORLEVEL! neq 0 (
     echo   set PATH=%%PATH%%;!INSTALL_DIR!
 )
 
+REM Validate plugin hooks.json if plugin is already installed
+if defined CLAUDE_CONFIG_DIR (
+    set "PLUGIN_HOOKS=%CLAUDE_CONFIG_DIR%\plugins\marketplaces\plannotator\apps\hook\hooks\hooks.json"
+) else (
+    set "PLUGIN_HOOKS=%USERPROFILE%\.claude\plugins\marketplaces\plannotator\apps\hook\hooks\hooks.json"
+)
+if exist "!PLUGIN_HOOKS!" (
+    (
+echo {
+echo   "hooks": {
+echo     "PermissionRequest": [
+echo       {
+echo         "matcher": "ExitPlanMode",
+echo         "hooks": [
+echo           {
+echo             "type": "command",
+echo             "command": "plannotator",
+echo             "timeout": 345600
+echo           }
+echo         ]
+echo       }
+echo     ]
+echo   }
+echo }
+    ) > "!PLUGIN_HOOKS!"
+    echo Updated plugin hooks at !PLUGIN_HOOKS!
+)
+
 REM Install /review slash command
 if defined CLAUDE_CONFIG_DIR (
     set "CLAUDE_COMMANDS_DIR=%CLAUDE_CONFIG_DIR%\commands"

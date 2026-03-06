@@ -83,6 +83,30 @@ if ! echo "$PATH" | tr ':' '\n' | grep -qx "$INSTALL_DIR"; then
     echo "  source ${shell_config}"
 fi
 
+# Validate plugin hooks.json if plugin is already installed
+PLUGIN_HOOKS="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/plugins/marketplaces/plannotator/apps/hook/hooks/hooks.json"
+if [ -f "$PLUGIN_HOOKS" ]; then
+    cat > "$PLUGIN_HOOKS" << 'HOOKS_EOF'
+{
+  "hooks": {
+    "PermissionRequest": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "plannotator",
+            "timeout": 345600
+          }
+        ]
+      }
+    ]
+  }
+}
+HOOKS_EOF
+    echo "Updated plugin hooks at ${PLUGIN_HOOKS}"
+fi
+
 # Clear any cached OpenCode plugin to force fresh download on next run
 rm -rf "$HOME/.cache/opencode/node_modules/@plannotator" "$HOME/.bun/install/cache/@plannotator" 2>/dev/null || true
 

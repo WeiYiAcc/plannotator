@@ -257,10 +257,17 @@ export async function runGitDiff(
           label = "Uncommitted changes";
           break;
         }
-        case "last-commit":
-          patch = (await $`git diff HEAD~1..HEAD --src-prefix=a/ --dst-prefix=b/`.quiet().cwd(wtPath)).text();
+        case "last-commit": {
+          const hasParent = (await $`git rev-parse --verify HEAD~1`.quiet().nothrow().cwd(wtPath)).exitCode === 0;
+          if (hasParent) {
+            patch = (await $`git diff HEAD~1..HEAD --src-prefix=a/ --dst-prefix=b/`.quiet().cwd(wtPath)).text();
+          } else {
+            // Initial commit — show full tree as diff
+            patch = (await $`git diff --root HEAD --src-prefix=a/ --dst-prefix=b/`.quiet().cwd(wtPath)).text();
+          }
           label = "Last commit";
           break;
+        }
         case "branch":
           patch = (await $`git diff ${defaultBranch}..HEAD --src-prefix=a/ --dst-prefix=b/`.quiet().cwd(wtPath)).text();
           label = `Changes vs ${defaultBranch}`;
@@ -311,10 +318,16 @@ export async function runGitDiff(
         break;
       }
 
-      case "last-commit":
-        patch = (await $`git diff HEAD~1..HEAD --src-prefix=a/ --dst-prefix=b/`.quiet()).text();
+      case "last-commit": {
+        const hasParent = (await $`git rev-parse --verify HEAD~1`.quiet().nothrow()).exitCode === 0;
+        if (hasParent) {
+          patch = (await $`git diff HEAD~1..HEAD --src-prefix=a/ --dst-prefix=b/`.quiet()).text();
+        } else {
+          patch = (await $`git diff --root HEAD --src-prefix=a/ --dst-prefix=b/`.quiet()).text();
+        }
         label = "Last commit";
         break;
+      }
 
       case "branch":
         patch = (await $`git diff ${defaultBranch}..HEAD --src-prefix=a/ --dst-prefix=b/`.quiet()).text();

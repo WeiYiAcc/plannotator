@@ -858,7 +858,12 @@ await Bun.write(
   ].join("\n"),
 );
 
-console.error("Created worktree: fix-parser (2 modified + 2 untracked files)");
+// Commit tracked changes so "Last commit" and "vs main" have content.
+// The untracked files (validator.ts, retry.ts) stay uncommitted.
+await $`git add src/utils/parser.ts src/utils/logger.ts`.quiet().cwd(wt2);
+await $`git commit -m "fix: handle empty input and add CSV/URL parsing"`.quiet().cwd(wt2);
+
+console.error("Created worktree: fix-parser (2 committed + 2 untracked files)");
 
 // --- Worktree 3: empty worktree ---
 // Tests the empty state. No files are modified, so selecting this worktree
@@ -993,7 +998,11 @@ await Bun.write(
   ].join("\n"),
 );
 
-console.error("Created worktree: detached HEAD (2 modified files — hotfix)");
+// Commit the hotfix so "Last commit" and "vs main" have content
+await $`git add -A`.quiet().cwd(wt4);
+await $`git commit -m "hotfix: add 404 handling and connection retry logic"`.quiet().cwd(wt4);
+
+console.error("Created worktree: detached HEAD (2 committed files — hotfix)");
 console.error("");
 
 // --- Run the review server from the main repo directory ---

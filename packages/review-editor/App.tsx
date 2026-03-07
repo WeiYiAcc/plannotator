@@ -837,6 +837,7 @@ const ReviewApp: React.FC = () => {
                           {diffType === 'unstaged' && "No unstaged changes. All changes are staged."}
                           {diffType === 'last-commit' && "No changes in the last commit."}
                           {diffType === 'branch' && `No changes between this branch and ${gitContext?.defaultBranch || 'main'}.`}
+                          {diffType?.startsWith('worktree:') && "No uncommitted changes in this worktree."}
                         </p>
                       </>
                     )}

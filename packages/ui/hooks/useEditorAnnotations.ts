@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import type { EditorAnnotation } from '../types';
 
-const POLL_INTERVAL = 500;
+const POLL_INTERVAL = 2000;
+const IS_VSCODE = typeof window !== 'undefined' && (window as any).__PLANNOTATOR_VSCODE === true;
 
 interface UseEditorAnnotationsReturn {
   editorAnnotations: EditorAnnotation[];
@@ -11,64 +12,33 @@ interface UseEditorAnnotationsReturn {
 /**
  * Polls the server for editor annotations created by the VS Code extension.
  *
- * On mount, fires a single probe request. If the endpoint doesn't exist (404 or
- * network error), disables itself permanently — zero ongoing cost for non-VS-Code
- * contexts. If the probe succeeds, starts polling every 2 seconds.
+ * Only activates when running inside a VS Code webview (detected via
+ * window.__PLANNOTATOR_VSCODE set by the theme bridge). In browser/shared URL
+ * contexts, returns an empty array with zero network cost.
  */
 export function useEditorAnnotations(): UseEditorAnnotationsReturn {
   const [annotations, setAnnotations] = useState<EditorAnnotation[]>([]);
-  const disabledRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const fetchAnnotations = useCallback(async () => {
     try {
       const res = await fetch('/api/editor-annotations');
-      if (!res.ok) {
-        disabledRef.current = true;
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-        }
-        return;
-      }
+      if (!res.ok) return;
       const data = await res.json();
       setAnnotations(data.annotations ?? []);
     } catch {
-      disabledRef.current = true;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+      // Silently fail — next poll will retry
     }
   }, []);
 
   useEffect(() => {
-    // Probe once on mount
-    let cancelled = false;
+    if (!IS_VSCODE) return;
 
-    (async () => {
-      try {
-        const res = await fetch('/api/editor-annotations');
-        if (cancelled) return;
-        if (!res.ok) {
-          disabledRef.current = true;
-          return;
-        }
-        const data = await res.json();
-        if (cancelled) return;
-        setAnnotations(data.annotations ?? []);
-
-        // Probe succeeded — start polling
-        intervalRef.current = setInterval(fetchAnnotations, POLL_INTERVAL);
-      } catch {
-        if (!cancelled) {
-          disabledRef.current = true;
-        }
-      }
-    })();
+    // Initial fetch + start polling
+    fetchAnnotations();
+    intervalRef.current = setInterval(fetchAnnotations, POLL_INTERVAL);
 
     return () => {
-      cancelled = true;
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -77,7 +47,7 @@ export function useEditorAnnotations(): UseEditorAnnotationsReturn {
   }, [fetchAnnotations]);
 
   const deleteEditorAnnotation = useCallback(async (id: string) => {
-    if (disabledRef.current) return;
+    if (!IS_VSCODE) return;
     try {
       await fetch(`/api/editor-annotation?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
       setAnnotations((prev) => prev.filter((a) => a.id !== id));

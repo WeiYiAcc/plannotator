@@ -1,5 +1,6 @@
-import React, { useMemo, useRef, useEffect, useCallback } from 'react';
-import { PatchDiff } from '@pierre/diffs/react';
+import React, { useMemo, useRef, useEffect, useCallback, useState } from 'react';
+import { FileDiff } from '@pierre/diffs/react';
+import { getSingularPatch } from '@pierre/diffs';
 import { CodeAnnotation, CodeAnnotationType, SelectedLineRange, DiffAnnotationMetadata } from '@plannotator/ui/types';
 import { useTheme } from '@plannotator/ui/components/ThemeProvider';
 import { detectLanguage } from '../utils/detectLanguage';
@@ -12,6 +13,7 @@ import { SuggestionModal } from './SuggestionModal';
 interface DiffViewerProps {
   patch: string;
   filePath: string;
+  oldPath?: string;
   diffStyle: 'split' | 'unified';
   annotations: CodeAnnotation[];
   selectedAnnotationId: string | null;
@@ -28,6 +30,7 @@ interface DiffViewerProps {
 export const DiffViewer: React.FC<DiffViewerProps> = ({
   patch,
   filePath,
+  oldPath,
   diffStyle,
   annotations,
   selectedAnnotationId,
@@ -44,6 +47,35 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const toolbar = useAnnotationToolbar({ patch, filePath, onLineSelection, onAddAnnotation, onEditAnnotation });
+
+  // Parse patch into FileDiffMetadata for @pierre/diffs FileDiff component
+  const fileDiff = useMemo(() => getSingularPatch(patch), [patch]);
+
+  // Fetch full file contents for expandable context
+  const [fileLines, setFileLines] = useState<{ old: string[]; new: string[] } | null>(null);
+
+  useEffect(() => {
+    setFileLines(null);
+    const params = new URLSearchParams({ path: filePath });
+    if (oldPath) params.set('oldPath', oldPath);
+    fetch(`/api/file-content?${params}`)
+      .then(res => res.ok ? res.json() : null)
+      .then((data: { oldContent: string | null; newContent: string | null } | null) => {
+        if (data) {
+          setFileLines({
+            old: data.oldContent?.split('\n') ?? [],
+            new: data.newContent?.split('\n') ?? [],
+          });
+        }
+      })
+      .catch(() => {}); // Silent fallback — no expansion in demo mode
+  }, [filePath, oldPath]);
+
+  // Augment parsed diff with file contents for expansion
+  const augmentedDiff = useMemo(() => {
+    if (!fileLines) return fileDiff;
+    return { ...fileDiff, oldLines: fileLines.old, newLines: fileLines.new };
+  }, [fileDiff, fileLines]);
 
   // Clear pending selection when file changes
   const prevFilePathRef = useRef(filePath);
@@ -147,14 +179,15 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
       />
 
       <div className="p-4">
-        <PatchDiff
+        <FileDiff
           key={filePath}
-          patch={patch}
+          fileDiff={augmentedDiff}
           options={{
             theme: pierreTheme,
             themeType: 'dark',
             diffStyle,
             diffIndicators: 'bars',
+            hunkSeparators: 'line-info',
             enableLineSelection: true,
             enableHoverUtility: true,
             onLineSelectionEnd: toolbar.handleLineSelectionEnd,

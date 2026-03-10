@@ -101,4 +101,11 @@ Coming soon.
 
 ## Codex
 
-Coming soon.
+No plugin or skill required — Codex runs `plannotator` as a normal shell command.
+
+Install the binary, then use it directly:
+
+```bash
+plannotator review           # Code review for current changes
+plannotator annotate file.md # Annotate a markdown file
+```

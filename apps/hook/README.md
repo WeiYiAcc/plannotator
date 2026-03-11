@@ -61,6 +61,14 @@ If you prefer not to use the plugin system, add this to your `~/.claude/settings
 }
 ```
 
+## Skills
+
+Skills are included with the plugin install.
+
+| Skill | Description |
+|-------|-------------|
+| `checklist` | Generate a QA checklist for manual verification of code changes |
+
 ## How It Works
 
 When Claude Code calls `ExitPlanMode`, this hook intercepts and:

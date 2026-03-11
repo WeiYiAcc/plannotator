@@ -511,3 +511,304 @@ export function startAnnotateServer(options: {
     stop: () => server.close(),
   };
 }
+
+// ── Checklist Validation (Node-compatible, duplicated from packages/server) ──
+
+/**
+ * Validate a checklist JSON object.
+ * Returns an array of error messages (empty = valid).
+ */
+export function validateChecklist(data: unknown): string[] {
+  const errors: string[] = [];
+
+  if (!data || typeof data !== "object") {
+    errors.push("Checklist must be a JSON object.");
+    return errors;
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  if (typeof obj.title !== "string" || !obj.title.trim()) {
+    errors.push('Missing or empty "title" (string).');
+  }
+
+  if (typeof obj.summary !== "string" || !obj.summary.trim()) {
+    errors.push('Missing or empty "summary" (string).');
+  }
+
+  if (!Array.isArray(obj.items)) {
+    errors.push('"items" must be an array.');
+    return errors;
+  }
+
+  if (obj.items.length === 0) {
+    errors.push('"items" array is empty — include at least one checklist item.');
+  }
+
+  for (let i = 0; i < obj.items.length; i++) {
+    const item = obj.items[i] as Record<string, unknown>;
+    const prefix = `items[${i}]`;
+
+    if (typeof item.id !== "string" || !item.id.trim()) {
+      errors.push(`${prefix}: missing "id" (string, e.g. "func-1").`);
+    }
+
+    if (typeof item.category !== "string" || !item.category.trim()) {
+      errors.push(`${prefix}: missing "category" (string, e.g. "functional").`);
+    }
+
+    if (typeof item.check !== "string" || !item.check.trim()) {
+      errors.push(`${prefix}: missing "check" (imperative verb phrase).`);
+    }
+
+    if (typeof item.description !== "string" || !item.description.trim()) {
+      errors.push(`${prefix}: missing "description" (markdown narrative).`);
+    }
+
+    if (!Array.isArray(item.steps) || item.steps.length === 0) {
+      errors.push(`${prefix}: "steps" must be a non-empty array of strings.`);
+    }
+
+    if (typeof item.reason !== "string" || !item.reason.trim()) {
+      errors.push(`${prefix}: missing "reason" (why manual verification is needed).`);
+    }
+  }
+
+  return errors;
+}
+
+// ── Checklist Feedback Formatting (Node-compatible) ──
+
+interface ChecklistItemType {
+  id: string;
+  category: string;
+  check: string;
+  description: string;
+  steps: string[];
+  reason: string;
+  files?: string[];
+  critical?: boolean;
+}
+
+interface ChecklistType {
+  title: string;
+  summary: string;
+  items: ChecklistItemType[];
+}
+
+interface ChecklistItemResultType {
+  id: string;
+  status: "passed" | "failed" | "skipped" | "pending";
+  notes?: string;
+  images?: { path: string; name: string }[];
+}
+
+function formatChecklistFeedback(
+  checklist: ChecklistType,
+  results: ChecklistItemResultType[],
+  globalNotes?: string,
+): string {
+  const resultMap = new Map(results.map((r) => [r.id, r]));
+
+  let passed = 0;
+  let failed = 0;
+  let skipped = 0;
+
+  for (const item of checklist.items) {
+    const result = resultMap.get(item.id);
+    if (result?.status === "passed") passed++;
+    else if (result?.status === "failed") failed++;
+    else if (result?.status === "skipped") skipped++;
+  }
+
+  const lines: string[] = [];
+
+  lines.push("# QA Checklist Results");
+  lines.push("");
+  lines.push("## Summary");
+  lines.push(`- **Title**: ${checklist.title}`);
+  lines.push(`- **Total**: ${checklist.items.length} items`);
+  lines.push(`- **Passed**: ${passed} | **Failed**: ${failed} | **Skipped**: ${skipped}`);
+  lines.push("");
+
+  const failedItems = checklist.items.filter(
+    (item) => resultMap.get(item.id)?.status === "failed"
+  );
+  if (failedItems.length > 0) {
+    lines.push("## Failed Items");
+    lines.push("");
+    for (const item of failedItems) {
+      const result = resultMap.get(item.id)!;
+      lines.push(`### ${item.id}: ${item.check}`);
+      lines.push(`**Status**: FAILED`);
+      lines.push(`**Category**: ${item.category}`);
+      if (item.critical) lines.push(`**Critical**: yes`);
+      if (item.files?.length) lines.push(`**Files**: ${item.files.join(", ")}`);
+      if (result.notes) lines.push(`**Developer notes**: ${result.notes}`);
+      if (result.images?.length) {
+        for (const img of result.images) {
+          lines.push(`[${img.name}] ${img.path}`);
+        }
+      }
+      lines.push("");
+    }
+  }
+
+  const skippedItems = checklist.items.filter(
+    (item) => resultMap.get(item.id)?.status === "skipped"
+  );
+  if (skippedItems.length > 0) {
+    lines.push("## Skipped Items");
+    lines.push("");
+    for (const item of skippedItems) {
+      const result = resultMap.get(item.id)!;
+      lines.push(`### ${item.id}: ${item.check}`);
+      lines.push(`**Status**: SKIPPED`);
+      if (result.notes) lines.push(`**Reason**: ${result.notes}`);
+      lines.push("");
+    }
+  }
+
+  const passedItems = checklist.items.filter(
+    (item) => resultMap.get(item.id)?.status === "passed"
+  );
+  if (passedItems.length > 0) {
+    lines.push("## Passed Items");
+    lines.push("");
+    for (const item of passedItems) {
+      const result = resultMap.get(item.id);
+      const notes = result?.notes ? ` — ${result.notes}` : "";
+      lines.push(`- [PASS] ${item.id}: ${item.check}${notes}`);
+    }
+    lines.push("");
+  }
+
+  if (globalNotes?.trim()) {
+    lines.push("## Developer Comments");
+    lines.push("");
+    lines.push(`> ${globalNotes.trim().replace(/\n/g, "\n> ")}`);
+    lines.push("");
+  }
+
+  return lines.join("\n");
+}
+
+// ── Checklist Storage (Node-compatible, duplicated from packages/server) ──
+
+/**
+ * Save a completed checklist (original + results) to disk.
+ * Returns the path to the saved file.
+ *
+ * Structure: ~/.plannotator/checklists/{project}/{slug}.json
+ */
+function saveChecklistResults(
+  checklist: ChecklistType,
+  results: ChecklistItemResultType[],
+  globalNotes: string | undefined,
+  project: string,
+): string {
+  const dir = join(os.homedir(), ".plannotator", "checklists", project);
+  mkdirSync(dir, { recursive: true });
+
+  const date = new Date().toISOString().split("T")[0];
+  const slug = checklist.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 50);
+  const timestamp = Date.now();
+  const filename = `${slug}-${date}-${timestamp}.json`;
+  const filePath = join(dir, filename);
+
+  writeFileSync(filePath, JSON.stringify({
+    checklist,
+    results,
+    globalNotes,
+    submittedAt: new Date().toISOString(),
+    project,
+  }, null, 2));
+
+  return filePath;
+}
+
+// ── Checklist Server ─────────────────────────────────────────────────────
+
+export interface ChecklistServerResult {
+  port: number;
+  url: string;
+  waitForDecision: () => Promise<{ feedback: string; results: ChecklistItemResultType[]; savedTo?: string; agentSwitch?: string }>;
+  stop: () => void;
+}
+
+export function startChecklistServer(options: {
+  checklist: ChecklistType;
+  htmlContent: string;
+  origin?: string;
+  project?: string;
+}): ChecklistServerResult {
+  const project = options.project || detectProjectName();
+
+  let resolveDecision!: (result: { feedback: string; results: ChecklistItemResultType[]; savedTo?: string; agentSwitch?: string }) => void;
+  const decisionPromise = new Promise<{ feedback: string; results: ChecklistItemResultType[]; savedTo?: string; agentSwitch?: string }>((r) => {
+    resolveDecision = r;
+  });
+
+  const server = createServer(async (req, res) => {
+    const url = new URL(req.url!, `http://localhost`);
+
+    if (url.pathname === "/api/checklist" && req.method === "GET") {
+      json(res, {
+        checklist: options.checklist,
+        origin: options.origin ?? "pi",
+        mode: "checklist",
+      });
+    } else if (url.pathname === "/api/feedback" && req.method === "POST") {
+      const body = await parseBody(req) as {
+        results?: ChecklistItemResultType[];
+        globalNotes?: string;
+        agentSwitch?: string;
+      };
+
+      const results = body.results || [];
+
+      // Save to disk
+      let savedTo: string | undefined;
+      try {
+        savedTo = saveChecklistResults(
+          options.checklist,
+          results,
+          body.globalNotes,
+          project,
+        );
+      } catch {
+        // Non-fatal — feedback still goes to agent
+      }
+
+      const feedback = formatChecklistFeedback(
+        options.checklist,
+        results,
+        body.globalNotes,
+      );
+
+      resolveDecision({
+        feedback,
+        results,
+        savedTo,
+        agentSwitch: body.agentSwitch,
+      });
+
+      json(res, { ok: true });
+    } else {
+      html(res, options.htmlContent);
+    }
+  });
+
+  const port = listenOnRandomPort(server);
+
+  return {
+    port,
+    url: `http://localhost:${port}`,
+    waitForDecision: () => decisionPromise,
+    stop: () => server.close(),
+  };
+}

@@ -84,6 +84,7 @@ During execution, the agent marks completed steps with `[DONE:n]` markers. Progr
 | `/plannotator-status` | Show current phase, plan file, and progress |
 | `/plannotator-review` | Open code review UI for current changes |
 | `/plannotator-annotate <file>` | Open markdown file in annotation UI |
+| `/plannotator-checklist <json>` | Open QA checklist verification UI |
 
 ## Flags
 
@@ -97,6 +98,14 @@ During execution, the agent marks completed steps with `[DONE:n]` markers. Progr
 | Shortcut | Description |
 |----------|-------------|
 | `Ctrl+Alt+P` | Toggle plan mode |
+
+## Skills
+
+Skills are included with the extension install.
+
+| Skill | Description |
+|-------|-------------|
+| `checklist` | Generate a QA checklist for manual verification of code changes |
 
 ## How it works
 

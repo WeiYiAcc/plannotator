@@ -31,6 +31,8 @@ import {
   startPlanReviewServer,
   startReviewServer,
   startAnnotateServer,
+  startChecklistServer,
+  validateChecklist,
   getGitContext,
   runGitDiff,
   openBrowser,
@@ -40,6 +42,7 @@ import {
 const __dirname = dirname(fileURLToPath(import.meta.url));
 let planHtmlContent = "";
 let reviewHtmlContent = "";
+let checklistHtmlContent = "";
 try {
   planHtmlContent = readFileSync(resolve(__dirname, "plannotator.html"), "utf-8");
 } catch {
@@ -49,6 +52,11 @@ try {
   reviewHtmlContent = readFileSync(resolve(__dirname, "review-editor.html"), "utf-8");
 } catch {
   // HTML not built yet — review feature will be unavailable
+}
+try {
+  checklistHtmlContent = readFileSync(resolve(__dirname, "checklist.html"), "utf-8");
+} catch {
+  // HTML not built yet — checklist feature will be unavailable
 }
 
 /** Extra tools to ensure are available during planning (on top of whatever is already active). */
@@ -303,6 +311,57 @@ export default function plannotator(pi: ExtensionAPI): void {
         );
       } else {
         ctx.ui.notify("Annotation closed (no feedback).", "info");
+      }
+    },
+  });
+
+  pi.registerCommand("plannotator-checklist", {
+    description: "Open interactive QA checklist verification UI",
+    handler: async (args, ctx) => {
+      const rawArgs = args?.trim();
+      if (!rawArgs) {
+        ctx.ui.notify("Usage: /plannotator-checklist <checklist-json>", "error");
+        return;
+      }
+      if (!checklistHtmlContent) {
+        ctx.ui.notify("Checklist UI not available. Run 'bun run build' in the pi-extension directory.", "error");
+        return;
+      }
+
+      // Parse JSON argument
+      let checklistData: unknown;
+      try {
+        checklistData = JSON.parse(rawArgs);
+      } catch {
+        ctx.ui.notify("Invalid JSON argument. Expected a checklist JSON object.", "error");
+        return;
+      }
+
+      // Validate the checklist structure
+      const errors = validateChecklist(checklistData);
+      if (errors.length > 0) {
+        ctx.ui.notify(`Invalid checklist:\n${errors.join("\n")}`, "error");
+        return;
+      }
+
+      ctx.ui.notify("Opening checklist UI...", "info");
+
+      const server = startChecklistServer({
+        checklist: checklistData as { title: string; summary: string; items: unknown[] },
+        origin: "pi",
+        htmlContent: checklistHtmlContent,
+      });
+
+      openBrowser(server.url);
+
+      const result = await server.waitForDecision();
+      await new Promise((r) => setTimeout(r, 1500));
+      server.stop();
+
+      if (result.feedback) {
+        pi.sendUserMessage(`${result.feedback}\n\nPlease address the checklist results above.`);
+      } else {
+        ctx.ui.notify("Checklist closed (no feedback).", "info");
       }
     },
   });

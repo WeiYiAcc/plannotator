@@ -1,7 +1,7 @@
 /**
  * Plannotator CLI for Claude Code
  *
- * Supports four modes:
+ * Supports five modes:
  *
  * 1. Plan Review (default, no args):
  *    - Spawned by ExitPlanMode hook
@@ -18,7 +18,12 @@
  *    - Opens any markdown file in the annotation UI
  *    - Outputs structured feedback to stdout
  *
- * 4. Sessions (`plannotator sessions`):
+ * 4. Checklist (`plannotator checklist '<json>'`):
+ *    - Triggered by /plannotator-checklist skill or slash command
+ *    - Opens QA checklist UI for manual verification
+ *    - Outputs per-item results as markdown to stdout
+ *
+ * 5. Sessions (`plannotator sessions`):
  *    - Lists active Plannotator server sessions
  *    - `--open [N]` reopens a session in the browser
  *    - `--clean` removes stale session files
@@ -43,6 +48,11 @@ import {
   startAnnotateServer,
   handleAnnotateServerReady,
 } from "@plannotator/server/annotate";
+import {
+  startChecklistServer,
+  handleChecklistServerReady,
+  validateChecklist,
+} from "@plannotator/server/checklist";
 import { getGitContext, runGitDiff } from "@plannotator/server/git";
 import { writeRemoteShareLink } from "@plannotator/server/share-url";
 import { resolveMarkdownFile } from "@plannotator/server/resolve-file";
@@ -59,6 +69,10 @@ const planHtmlContent = planHtml as unknown as string;
 // @ts-ignore - Bun import attribute for text
 import reviewHtml from "../dist/review.html" with { type: "text" };
 const reviewHtmlContent = reviewHtml as unknown as string;
+
+// @ts-ignore - Bun import attribute for text
+import checklistHtml from "../dist/checklist.html" with { type: "text" };
+const checklistHtmlContent = checklistHtml as unknown as string;
 
 // Check for subcommand
 const args = process.argv.slice(2);
@@ -269,6 +283,94 @@ if (args[0] === "sessions") {
 
   // Output feedback (captured by slash command)
   console.log(result.feedback || "No feedback provided.");
+  process.exit(0);
+
+} else if (args[0] === "checklist") {
+  // ============================================
+  // QA CHECKLIST MODE
+  // ============================================
+
+  // JSON can come from CLI argument or --file flag
+  let jsonInput = args[1];
+
+  const fileIdx = args.indexOf("--file");
+  if (fileIdx !== -1 && args[fileIdx + 1]) {
+    const filePath = args[fileIdx + 1];
+    try {
+      jsonInput = await Bun.file(filePath).text();
+    } catch {
+      console.error(`Failed to read checklist file: ${filePath}`);
+      process.exit(1);
+    }
+  }
+
+  if (!jsonInput) {
+    console.error("Usage: plannotator checklist '<json>' or plannotator checklist --file <path>");
+    process.exit(1);
+  }
+
+  // Parse and validate JSON
+  let checklistData: unknown;
+  try {
+    checklistData = JSON.parse(jsonInput);
+  } catch {
+    console.error("Invalid JSON. Ensure the checklist is valid JSON.");
+    process.exit(1);
+  }
+
+  // Unwrap saved checklist files (which have { checklist, results, ... })
+  if (checklistData && typeof checklistData === "object" && "checklist" in checklistData) {
+    checklistData = (checklistData as Record<string, unknown>).checklist;
+  }
+
+  const errors = validateChecklist(checklistData);
+  if (errors.length > 0) {
+    console.error("Checklist validation failed:");
+    for (const err of errors) {
+      console.error(`  - ${err}`);
+    }
+    console.error("\nSee the checklist skill for the expected JSON schema.");
+    process.exit(1);
+  }
+
+  const checklist = checklistData as import("@plannotator/shared/checklist-types").Checklist;
+  const checklistProject = (await detectProjectName()) ?? "_unknown";
+
+  const server = await startChecklistServer({
+    checklist,
+    origin: "claude-code",
+    project: checklistProject,
+    htmlContent: checklistHtmlContent,
+    onReady: (url, isRemote, port) => {
+      handleChecklistServerReady(url, isRemote, port);
+    },
+  });
+
+  registerSession({
+    pid: process.pid,
+    port: server.port,
+    url: server.url,
+    mode: "checklist",
+    project: checklistProject,
+    startedAt: new Date().toISOString(),
+    label: `checklist-${checklistProject}`,
+  });
+
+  // Wait for user to complete the checklist
+  const result = await server.waitForDecision();
+
+  // Give browser time to receive response and update UI
+  await Bun.sleep(1500);
+
+  // Cleanup
+  server.stop();
+
+  // Output feedback (captured by slash command)
+  let output = result.feedback || "No checklist results provided.";
+  if (result.savedTo) {
+    output += `\n\nChecklist results saved to: ${result.savedTo}\nReopen with: plannotator checklist --file ${result.savedTo}`;
+  }
+  console.log(output);
   process.exit(0);
 
 } else {

@@ -1,0 +1,282 @@
+@import "tailwindcss";
+
+/* Tell Tailwind where to scan for classes */
+@source "../ui/components/**/*.tsx";
+@source "../ui/hooks/**/*.ts";
+@source "./*.tsx";
+@source "./components/**/*.tsx";
+
+@import "../ui/styles/theme.css";
+
+/* =====================================================
+   QA Checklist Specific Styles
+   ===================================================== */
+
+/* Background grid — matches plan review document area */
+.bg-grid {
+  background-image:
+    linear-gradient(to right, oklch(0.32 0.02 260 / 0.5) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.32 0.02 260 / 0.5) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+.light .bg-grid {
+  background-image:
+    linear-gradient(to right, oklch(0.90 0.01 260 / 0.6) 1px, transparent 1px),
+    linear-gradient(to bottom, oklch(0.90 0.01 260 / 0.6) 1px, transparent 1px);
+}
+
+/* Checklist item — status expressed via background tint, not left border */
+.checklist-item {
+  transition: background-color 150ms, box-shadow 150ms, border-color 150ms;
+}
+
+.checklist-item.passed {
+  background: oklch(from var(--success) l c h / 0.06);
+  border-color: oklch(from var(--success) l c h / 0.2);
+}
+
+.checklist-item.failed {
+  background: oklch(from var(--destructive) l c h / 0.06);
+  border-color: oklch(from var(--destructive) l c h / 0.2);
+}
+
+.checklist-item.skipped {
+  background: oklch(from var(--warning) l c h / 0.06);
+  border-color: oklch(from var(--warning) l c h / 0.2);
+}
+
+.checklist-item.selected {
+  box-shadow:
+    0 0 0 1px oklch(from var(--primary) l c h / 0.3),
+    0 2px 8px -2px rgba(0, 0, 0, 0.12);
+}
+
+/* Critical badge */
+.critical-badge {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--destructive-foreground);
+  background: var(--destructive);
+  padding: 0.125rem 0.375rem;
+  border-radius: var(--radius-sm);
+}
+
+/* Progress bar segments */
+.progress-segment {
+  transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Category group header */
+.category-header {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted-foreground);
+}
+
+/* Quick action buttons — always visible in card layout */
+.quick-actions {
+  opacity: 1;
+}
+
+/* Description preview with gradient mask fade */
+.checklist-item-preview {
+  max-height: 2.5em;
+  overflow: hidden;
+  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+}
+
+/* Expandable body — CSS grid trick for smooth expand */
+.checklist-item-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 200ms ease;
+}
+
+.checklist-item-body.expanded {
+  grid-template-rows: 1fr;
+}
+
+.checklist-item-body > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Category group collapse — same CSS grid trick, slightly slower */
+.checklist-group-body {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.checklist-group-body.expanded {
+  grid-template-rows: 1fr;
+}
+
+.checklist-group-body > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Category group compact summary — inverse of group-body */
+.checklist-group-compact {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.checklist-group-compact.expanded {
+  grid-template-rows: 1fr;
+}
+
+.checklist-group-compact > div {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.compact-summary-inner {
+  padding: 0.25rem 0.25rem 0.5rem;
+}
+
+.compact-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--muted-foreground);
+  padding: 0.125rem 0;
+  opacity: 0;
+  animation: compact-fade-in 200ms ease forwards;
+}
+
+.compact-summary-row span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes compact-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 0.7;
+    transform: translateY(0);
+  }
+}
+
+.compact-summary-overflow {
+  display: flex;
+  align-items: center;
+  padding-top: 0.125rem;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  opacity: 0.4;
+  mask-image: linear-gradient(to bottom, black 30%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 30%, transparent 100%);
+}
+
+/* Document centering — matches plan review centered column */
+.checklist-document {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+
+/* Markdown rendered in description panel */
+.checklist-description {
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--card-foreground);
+}
+
+.checklist-description code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--muted);
+  padding: 0.1em 0.35em;
+  border-radius: 0.25rem;
+}
+
+.checklist-description pre {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  background: oklch(0.13 0.015 260);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.75rem;
+  margin: 0.375rem 0;
+  overflow-x: auto;
+}
+
+.light .checklist-description pre {
+  background: oklch(0.96 0.005 260);
+}
+
+/* Verification steps list */
+.verification-steps {
+  counter-reset: step;
+  list-style: none;
+  padding: 0;
+}
+
+.verification-steps li {
+  counter-increment: step;
+  position: relative;
+  padding-left: 2rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.verification-steps li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: oklch(from var(--primary) l c h / 0.1);
+  border-radius: 50%;
+}
+
+
+/* Toast animations */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-in-from-bottom-2 {
+  from { transform: translateY(0.5rem) translateX(-50%); }
+  to { transform: translateY(0) translateX(-50%); }
+}
+
+.animate-in {
+  animation-duration: 200ms;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+.fade-in {
+  animation-name: fade-in;
+}
+
+.slide-in-from-bottom-2 {
+  animation-name: slide-in-from-bottom-2;
+}

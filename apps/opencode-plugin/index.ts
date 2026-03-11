@@ -26,6 +26,12 @@ import {
   startAnnotateServer,
   handleAnnotateServerReady,
 } from "@plannotator/server/annotate";
+import {
+  startChecklistServer,
+  handleChecklistServerReady,
+  validateChecklist,
+  formatChecklistFeedback,
+} from "@plannotator/server/checklist";
 import { getGitContext, runGitDiff } from "@plannotator/server/git";
 import { writeRemoteShareLink } from "@plannotator/server/share-url";
 import { resolveMarkdownFile } from "@plannotator/server/resolve-file";
@@ -37,6 +43,10 @@ const htmlContent = indexHtml as unknown as string;
 // @ts-ignore - Bun import attribute for text
 import reviewHtml from "./review-editor.html" with { type: "text" };
 const reviewHtmlContent = reviewHtml as unknown as string;
+
+// @ts-ignore - Bun import attribute for text
+import checklistHtml from "./checklist.html" with { type: "text" };
+const checklistHtmlContent = checklistHtml as unknown as string;
 
 const DEFAULT_PLAN_TIMEOUT_SECONDS = 345_600; // 96 hours
 
@@ -317,6 +327,88 @@ Do NOT proceed with implementation until your plan is approved.
                     {
                       type: "text",
                       text: `# Markdown Annotations\n\nFile: ${absolutePath}\n\n${result.feedback}\n\nPlease address the annotation feedback above.`,
+                    },
+                  ],
+                },
+              });
+            } catch {
+              // Session may not be available
+            }
+          }
+        }
+      }
+
+      // Handle /plannotator-checklist command
+      const isChecklistCommand = commandName === "plannotator-checklist";
+
+      if (isCommandEvent && isChecklistCommand) {
+        // @ts-ignore - Event properties contain arguments
+        const rawArgs = event.properties?.arguments || event.arguments || "";
+
+        if (!rawArgs) {
+          ctx.client.app.log({
+            level: "error",
+            message: "Usage: /plannotator-checklist <checklist-json>",
+          });
+          return;
+        }
+
+        // Parse the JSON argument
+        let checklistData: unknown;
+        try {
+          checklistData = JSON.parse(rawArgs);
+        } catch {
+          ctx.client.app.log({
+            level: "error",
+            message: "Invalid JSON argument. Expected a checklist JSON object.",
+          });
+          return;
+        }
+
+        // Validate the checklist structure
+        const errors = validateChecklist(checklistData);
+        if (errors.length > 0) {
+          ctx.client.app.log({
+            level: "error",
+            message: `Invalid checklist:\n${errors.join("\n")}`,
+          });
+          return;
+        }
+
+        ctx.client.app.log({
+          level: "info",
+          message: "Opening checklist UI...",
+        });
+
+        const server = await startChecklistServer({
+          checklist: checklistData as import("@plannotator/shared/checklist-types").Checklist,
+          origin: "opencode",
+          htmlContent: checklistHtmlContent,
+          onReady: handleChecklistServerReady,
+        });
+
+        const result = await server.waitForDecision();
+        await Bun.sleep(1500);
+        server.stop();
+
+        // Send feedback back to the session if provided
+        if (result.feedback) {
+          // @ts-ignore - Event properties contain sessionID for command.executed events
+          const sessionId = event.properties?.sessionID;
+
+          if (sessionId) {
+            const shouldSwitchAgent = result.agentSwitch && result.agentSwitch !== 'disabled';
+            const targetAgent = result.agentSwitch || 'build';
+
+            try {
+              await ctx.client.session.prompt({
+                path: { id: sessionId },
+                body: {
+                  ...(shouldSwitchAgent && { agent: targetAgent }),
+                  parts: [
+                    {
+                      type: "text",
+                      text: `${result.feedback}\n\nPlease address the checklist results above.`,
                     },
                   ],
                 },

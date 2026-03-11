@@ -43,6 +43,14 @@ Restart OpenCode. The `submit_plan` tool is now available.
 3. **Approve** → Agent proceeds with implementation
 4. **Request changes** → Annotations sent back as structured feedback
 
+## Skills
+
+Skills are included with the plugin install.
+
+| Skill | Description |
+|-------|-------------|
+| `checklist` | Generate a QA checklist for manual verification of code changes |
+
 ## Features
 
 - **Visual annotations**: Select text, choose an action, see feedback in the sidebar

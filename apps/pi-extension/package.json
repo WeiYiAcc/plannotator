@@ -24,10 +24,11 @@
     "utils.ts",
     "README.md",
     "plannotator.html",
-    "review-editor.html"
+    "review-editor.html",
+    "checklist.html"
   ],
   "scripts": {
-    "build": "cp ../hook/dist/index.html plannotator.html && cp ../hook/dist/review.html review-editor.html",
+    "build": "cp ../hook/dist/index.html plannotator.html && cp ../hook/dist/review.html review-editor.html && cp ../hook/dist/checklist.html checklist.html",
     "prepublishOnly": "cd ../.. && bun run build:pi"
   },
   "peerDependencies": {

@@ -44,6 +44,16 @@ Run `!plannotator annotate` to annotate any markdown file:
 | `PLANNOTATOR_PORT` | Fixed port to use. Default: random locally, `19432` for remote sessions. |
 | `PLANNOTATOR_BROWSER` | Custom browser to open. macOS: app name or path. Linux/Windows: executable path. |
 
+## Skills
+
+Skills are installed automatically by the install script above. They are placed in `~/.agents/skills/` and discovered by Codex on startup.
+
+Alternatively, install skills only via `npx skills add backnotprop/plannotator`.
+
+| Skill | Description |
+|-------|-------------|
+| `checklist` | Generate a QA checklist for manual verification of code changes |
+
 ## Links
 
 - [Website](https://plannotator.ai)

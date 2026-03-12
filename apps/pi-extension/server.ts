@@ -9,8 +9,9 @@
 import { createServer, type IncomingMessage, type Server } from "node:http";
 import { execSync } from "node:child_process";
 import os from "node:os";
-import { mkdirSync, writeFileSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join, basename } from "node:path";
+import { mkdirSync, writeFileSync, readFileSync, readdirSync, statSync, existsSync, unlinkSync } from "node:fs";
+import { join, basename, resolve, extname } from "node:path";
+import { createHash, randomUUID } from "node:crypto";
 
 // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -42,6 +43,171 @@ function listenOnRandomPort(server: Server): number {
   server.listen(0);
   const addr = server.address() as { port: number };
   return addr.port;
+}
+
+// ── Image Validation (duplicated from packages/server/image.ts) ─────────
+
+const ALLOWED_IMAGE_EXTENSIONS = new Set([
+  "png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "ico", "tiff", "tif", "avif",
+]);
+const UPLOAD_DIR = "/tmp/plannotator";
+
+function getExtension(filePath: string): string {
+  const lastDot = filePath.lastIndexOf(".");
+  if (lastDot === -1) return "";
+  return filePath.slice(lastDot + 1).toLowerCase();
+}
+
+function validateImagePath(rawPath: string): { valid: boolean; resolved: string; error?: string } {
+  const resolved = resolve(rawPath);
+  if (!ALLOWED_IMAGE_EXTENSIONS.has(getExtension(resolved))) {
+    return { valid: false, resolved, error: "Path does not point to a supported image file" };
+  }
+  return { valid: true, resolved };
+}
+
+function validateUploadExtension(fileName: string): { valid: boolean; ext: string; error?: string } {
+  const ext = getExtension(fileName) || "png";
+  if (!ALLOWED_IMAGE_EXTENSIONS.has(ext)) {
+    return { valid: false, ext, error: `File extension ".${ext}" is not a supported image type` };
+  }
+  return { valid: true, ext };
+}
+
+const MIME_MAP: Record<string, string> = {
+  png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif",
+  webp: "image/webp", svg: "image/svg+xml", bmp: "image/bmp", ico: "image/x-icon",
+  tiff: "image/tiff", tif: "image/tiff", avif: "image/avif",
+};
+
+function handlePiImage(req: IncomingMessage, res: import("node:http").ServerResponse): void {
+  const url = new URL(req.url!, "http://localhost");
+  const imagePath = url.searchParams.get("path");
+  if (!imagePath) { json(res, { error: "Missing path parameter" }, 400); return; }
+  const validation = validateImagePath(imagePath);
+  if (!validation.valid) { json(res, { error: validation.error }, 403); return; }
+  try {
+    if (!existsSync(validation.resolved)) { json(res, { error: "File not found" }, 404); return; }
+    const data = readFileSync(validation.resolved);
+    const mime = MIME_MAP[getExtension(validation.resolved)] || "application/octet-stream";
+    res.writeHead(200, { "Content-Type": mime, "Content-Length": data.length });
+    res.end(data);
+  } catch {
+    json(res, { error: "Failed to read file" }, 500);
+  }
+}
+
+// ── Image Upload (Node multipart parser) ────────────────────────────────
+
+function parseMultipartFile(req: IncomingMessage): Promise<{ filename: string; data: Buffer } | null> {
+  return new Promise((resolve) => {
+    const contentType = req.headers["content-type"] || "";
+    const boundaryMatch = contentType.match(/boundary=(.+)/);
+    if (!boundaryMatch) { resolve(null); return; }
+    const boundary = boundaryMatch[1];
+
+    const chunks: Buffer[] = [];
+    req.on("data", (chunk: Buffer) => chunks.push(typeof chunk === "string" ? Buffer.from(chunk) : chunk));
+    req.on("end", () => {
+      try {
+        const body = Buffer.concat(chunks);
+        const boundaryBuf = Buffer.from(`--${boundary}`);
+        // Find the file part
+        const bodyStr = body.toString("latin1");
+        const parts = bodyStr.split(`--${boundary}`);
+        for (const part of parts) {
+          if (!part.includes('name="file"')) continue;
+          const filenameMatch = part.match(/filename="([^"]+)"/);
+          if (!filenameMatch) continue;
+          // Find blank line separating headers from content
+          const headerEnd = part.indexOf("\r\n\r\n");
+          if (headerEnd === -1) continue;
+          // Extract binary data (use Buffer offset, not string)
+          const partStart = bodyStr.indexOf(part);
+          const dataStart = partStart + headerEnd + 4;
+          // Find the closing boundary
+          let dataEnd = bodyStr.indexOf(`\r\n--${boundary}`, dataStart);
+          if (dataEnd === -1) dataEnd = body.length;
+          resolve({ filename: filenameMatch[1], data: body.subarray(dataStart, dataEnd) });
+          return;
+        }
+        resolve(null);
+      } catch {
+        resolve(null);
+      }
+    });
+  });
+}
+
+async function handlePiUpload(req: IncomingMessage, res: import("node:http").ServerResponse): Promise<void> {
+  try {
+    const file = await parseMultipartFile(req);
+    if (!file) { json(res, { error: "No file provided" }, 400); return; }
+    const extResult = validateUploadExtension(file.filename);
+    if (!extResult.valid) { json(res, { error: extResult.error }, 400); return; }
+    mkdirSync(UPLOAD_DIR, { recursive: true });
+    const tempPath = `${UPLOAD_DIR}/${randomUUID()}.${extResult.ext}`;
+    writeFileSync(tempPath, file.data);
+    json(res, { path: tempPath, originalName: file.filename });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Upload failed";
+    json(res, { error: message }, 500);
+  }
+}
+
+// ── Draft Persistence (duplicated from packages/server/draft.ts) ────────
+
+function getDraftDir(): string {
+  const dir = join(os.homedir(), ".plannotator", "drafts");
+  mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
+function contentHash(content: string): string {
+  return createHash("sha256").update(content).digest("hex").slice(0, 16);
+}
+
+function saveDraft(key: string, data: object): void {
+  writeFileSync(join(getDraftDir(), `${key}.json`), JSON.stringify(data), "utf-8");
+}
+
+function loadDraft(key: string): object | null {
+  const filePath = join(getDraftDir(), `${key}.json`);
+  try {
+    if (!existsSync(filePath)) return null;
+    return JSON.parse(readFileSync(filePath, "utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+function deleteDraft(key: string): void {
+  const filePath = join(getDraftDir(), `${key}.json`);
+  try {
+    if (existsSync(filePath)) unlinkSync(filePath);
+  } catch {
+    // Ignore delete failures
+  }
+}
+
+async function handlePiDraft(req: IncomingMessage, res: import("node:http").ServerResponse, draftKey: string): Promise<void> {
+  if (req.method === "POST") {
+    try {
+      const body = await parseBody(req);
+      saveDraft(draftKey, body);
+      json(res, { ok: true });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to save draft";
+      json(res, { error: message }, 500);
+    }
+  } else if (req.method === "DELETE") {
+    deleteDraft(draftKey);
+    json(res, { ok: true });
+  } else {
+    const draft = loadDraft(draftKey);
+    if (!draft) { json(res, { found: false }, 404); return; }
+    json(res, draft);
+  }
 }
 
 /**
@@ -277,6 +443,8 @@ export function startPlanReviewServer(options: {
     project,
   };
 
+  const draftKey = contentHash(options.plan);
+
   let resolveDecision!: (result: { approved: boolean; feedback?: string }) => void;
   const decisionPromise = new Promise<{ approved: boolean; feedback?: string }>((r) => {
     resolveDecision = r;
@@ -316,6 +484,12 @@ export function startPlanReviewServer(options: {
       const body = await parseBody(req);
       resolveDecision({ approved: false, feedback: (body.feedback as string) || "Plan rejected" });
       json(res, { ok: true });
+    } else if (url.pathname === "/api/image" && req.method === "GET") {
+      handlePiImage(req, res);
+    } else if (url.pathname === "/api/upload" && req.method === "POST") {
+      await handlePiUpload(req, res);
+    } else if (url.pathname === "/api/draft") {
+      await handlePiDraft(req, res, draftKey);
     } else {
       html(res, options.htmlContent);
     }
@@ -414,6 +588,7 @@ export function startReviewServer(options: {
   let currentPatch = options.rawPatch;
   let currentGitRef = options.gitRef;
   let currentDiffType: DiffType = options.diffType || "uncommitted";
+  const draftKey = contentHash(currentPatch || "");
 
   let resolveDecision!: (result: { feedback: string }) => void;
   const decisionPromise = new Promise<{ feedback: string }>((r) => {
@@ -448,6 +623,12 @@ export function startReviewServer(options: {
       const body = await parseBody(req);
       resolveDecision({ feedback: (body.feedback as string) || "" });
       json(res, { ok: true });
+    } else if (url.pathname === "/api/image" && req.method === "GET") {
+      handlePiImage(req, res);
+    } else if (url.pathname === "/api/upload" && req.method === "POST") {
+      await handlePiUpload(req, res);
+    } else if (url.pathname === "/api/draft") {
+      await handlePiDraft(req, res, draftKey);
     } else {
       html(res, options.htmlContent);
     }
@@ -478,6 +659,8 @@ export function startAnnotateServer(options: {
   htmlContent: string;
   origin?: string;
 }): AnnotateServerResult {
+  const draftKey = contentHash(options.markdown);
+
   let resolveDecision!: (result: { feedback: string }) => void;
   const decisionPromise = new Promise<{ feedback: string }>((r) => {
     resolveDecision = r;
@@ -497,6 +680,12 @@ export function startAnnotateServer(options: {
       const body = await parseBody(req);
       resolveDecision({ feedback: (body.feedback as string) || "" });
       json(res, { ok: true });
+    } else if (url.pathname === "/api/image" && req.method === "GET") {
+      handlePiImage(req, res);
+    } else if (url.pathname === "/api/upload" && req.method === "POST") {
+      await handlePiUpload(req, res);
+    } else if (url.pathname === "/api/draft") {
+      await handlePiDraft(req, res, draftKey);
     } else {
       html(res, options.htmlContent);
     }
@@ -534,6 +723,25 @@ export function validateChecklist(data: unknown): string[] {
 
   if (typeof obj.summary !== "string" || !obj.summary.trim()) {
     errors.push('Missing or empty "summary" (string).');
+  }
+
+  // Validate optional PR field
+  if (obj.pr !== undefined) {
+    if (typeof obj.pr !== "object" || obj.pr === null) {
+      errors.push('"pr" must be an object if provided.');
+    } else {
+      const pr = obj.pr as Record<string, unknown>;
+      if (typeof pr.number !== "number") {
+        errors.push('pr.number must be a number.');
+      }
+      if (typeof pr.url !== "string" || !pr.url) {
+        errors.push('pr.url must be a non-empty string.');
+      }
+      const validProviders = ["github", "gitlab", "azure-devops"];
+      if (!validProviders.includes(pr.provider as string)) {
+        errors.push(`pr.provider must be one of: ${validProviders.join(", ")}.`);
+      }
+    }
   }
 
   if (!Array.isArray(obj.items)) {
@@ -704,56 +912,66 @@ function formatChecklistFeedback(
     }
   }
 
-  // Automations (PR integration)
+  // Automation instructions (matches packages/server/checklist.ts)
   if (automations && checklist.pr) {
     const pr = checklist.pr;
+    const hasAutomations = automations.postToPR || automations.approveIfAllPass;
 
-    if (automations.postToPR) {
-      lines.push("## Post Results to PR");
+    if (hasAutomations) {
+      lines.push("## Automations");
       lines.push("");
-      if (pr.provider === "github") {
-        lines.push(`Post a summary comment to PR #${pr.number}:`);
-        lines.push("```bash");
-        lines.push(`gh pr comment ${pr.number} --body 'QA Checklist: ${passed} passed, ${failed} failed, ${skipped} skipped out of ${checklist.items.length} items'`);
-        lines.push("```");
-      } else if (pr.provider === "gitlab") {
-        lines.push(`Post a summary note to MR !${pr.number}:`);
-        lines.push("```bash");
-        lines.push(`glab mr note ${pr.number} --message 'QA Checklist: ${passed} passed, ${failed} failed, ${skipped} skipped out of ${checklist.items.length} items'`);
-        lines.push("```");
-      } else if (pr.provider === "azure-devops") {
-        lines.push(`Post a summary comment to PR #${pr.number}:`);
-        lines.push("```bash");
-        lines.push(`az repos pr update --id ${pr.number} --description 'QA Checklist: ${passed} passed, ${failed} failed, ${skipped} skipped out of ${checklist.items.length} items'`);
-        lines.push("```");
-      }
-      lines.push("");
-    }
 
-    if (automations.approveIfAllPass && failed === 0 && skipped === 0 && pending === 0) {
-      if (pr.provider === "github") {
-        lines.push("**Approve PR**: All checklist items passed. The developer requested auto-approval.");
-        lines.push(`Use the \`gh\` CLI to approve PR #${pr.number}:`);
-        lines.push("```bash");
-        lines.push(`gh pr review ${pr.number} --approve --body 'QA checklist passed (${passed}/${passed} items)'`);
-        lines.push("```");
-      } else if (pr.provider === "gitlab") {
-        lines.push("**Approve MR**: All checklist items passed. The developer requested auto-approval.");
-        lines.push(`Use the \`glab\` CLI to approve MR !${pr.number}:`);
-        lines.push("```bash");
-        lines.push(`glab mr approve ${pr.number}`);
-        lines.push("```");
-      } else if (pr.provider === "azure-devops") {
-        lines.push("**Approve PR**: All checklist items passed. The developer requested auto-approval.");
-        lines.push(`Use the \`az\` CLI to approve PR #${pr.number}:`);
-        lines.push("```bash");
-        lines.push(`az repos pr set-vote --id ${pr.number} --vote approve`);
-        lines.push("```");
+      if (automations.postToPR) {
+        if (pr.provider === "github") {
+          lines.push("**Post results to PR**: The developer requested that you post these checklist results as a comment on the pull request.");
+          lines.push(`Use the \`gh\` CLI to post a comment to PR #${pr.number}:`);
+          lines.push("```bash");
+          lines.push(`gh pr comment ${pr.number} --body '<checklist results markdown>'`);
+          lines.push("```");
+          lines.push("If `gh` is not available, inform the developer to install the GitHub CLI (`brew install gh` or https://cli.github.com).");
+        } else if (pr.provider === "gitlab") {
+          lines.push("**Post results to MR**: The developer requested that you post these checklist results as a comment on the merge request.");
+          lines.push(`Use the \`glab\` CLI to post a note to MR !${pr.number}:`);
+          lines.push("```bash");
+          lines.push(`glab mr note ${pr.number} --message '<checklist results markdown>'`);
+          lines.push("```");
+          lines.push("If `glab` is not available, inform the developer to install the GitLab CLI (`brew install glab` or https://gitlab.com/gitlab-org/cli).");
+        } else if (pr.provider === "azure-devops") {
+          lines.push("**Post results to PR**: The developer requested that you post these checklist results as a comment on the pull request.");
+          lines.push(`Use the \`az\` CLI to post a comment to PR #${pr.number}:`);
+          lines.push("```bash");
+          lines.push(`az repos pr update --id ${pr.number} --description '<append checklist results>'`);
+          lines.push("```");
+          lines.push("If `az` is not available, inform the developer to install Azure CLI (`brew install azure-cli` or https://learn.microsoft.com/en-us/cli/azure/install-azure-cli).");
+        }
+        lines.push("");
       }
-      lines.push("");
-    } else if (automations.approveIfAllPass && (failed > 0 || skipped > 0 || pending > 0)) {
-      lines.push("**Approve PR**: Skipped — not all items passed. Fix the failed/skipped items and re-run the checklist.");
-      lines.push("");
+
+      if (automations.approveIfAllPass && failed === 0 && skipped === 0 && pending === 0) {
+        if (pr.provider === "github") {
+          lines.push("**Approve PR**: All checklist items passed. The developer requested auto-approval.");
+          lines.push(`Use the \`gh\` CLI to approve PR #${pr.number}:`);
+          lines.push("```bash");
+          lines.push(`gh pr review ${pr.number} --approve --body 'QA checklist passed (${passed}/${passed} items)'`);
+          lines.push("```");
+        } else if (pr.provider === "gitlab") {
+          lines.push("**Approve MR**: All checklist items passed. The developer requested auto-approval.");
+          lines.push(`Use the \`glab\` CLI to approve MR !${pr.number}:`);
+          lines.push("```bash");
+          lines.push(`glab mr approve ${pr.number}`);
+          lines.push("```");
+        } else if (pr.provider === "azure-devops") {
+          lines.push("**Approve PR**: All checklist items passed. The developer requested auto-approval.");
+          lines.push(`Use the \`az\` CLI to approve PR #${pr.number}:`);
+          lines.push("```bash");
+          lines.push(`az repos pr set-vote --id ${pr.number} --vote approve`);
+          lines.push("```");
+        }
+        lines.push("");
+      } else if (automations.approveIfAllPass && (failed > 0 || skipped > 0 || pending > 0)) {
+        lines.push("**Approve PR**: Skipped — not all items passed. Fix the failed/skipped items and re-run the checklist.");
+        lines.push("");
+      }
     }
   }
 
@@ -771,7 +989,7 @@ function formatChecklistFeedback(
 function saveChecklistResults(
   checklist: ChecklistType,
   results: ChecklistItemResultType[],
-  globalNotes: string | undefined,
+  globalNotes: string[] | string | undefined,
   project: string,
 ): string {
   const dir = join(os.homedir(), ".plannotator", "checklists", project);
@@ -812,8 +1030,12 @@ export function startChecklistServer(options: {
   htmlContent: string;
   origin?: string;
   project?: string;
+  initialResults?: ChecklistItemResultType[];
+  initialGlobalNotes?: string[];
+  onReady?: (url: string, port: number) => void;
 }): ChecklistServerResult {
   const project = options.project || detectProjectName();
+  const draftKey = contentHash(JSON.stringify(options.checklist));
 
   let resolveDecision!: (result: { feedback: string; results: ChecklistItemResultType[]; savedTo?: string; agentSwitch?: string }) => void;
   const decisionPromise = new Promise<{ feedback: string; results: ChecklistItemResultType[]; savedTo?: string; agentSwitch?: string }>((r) => {
@@ -828,6 +1050,8 @@ export function startChecklistServer(options: {
         checklist: options.checklist,
         origin: options.origin ?? "pi",
         mode: "checklist",
+        ...(options.initialResults && { initialResults: options.initialResults }),
+        ...(options.initialGlobalNotes && { initialGlobalNotes: options.initialGlobalNotes }),
       });
     } else if (url.pathname === "/api/feedback" && req.method === "POST") {
       const body = await parseBody(req) as {
@@ -836,6 +1060,8 @@ export function startChecklistServer(options: {
         automations?: { postToPR?: boolean; approveIfAllPass?: boolean };
         agentSwitch?: string;
       };
+
+      deleteDraft(draftKey);
 
       const results = body.results || [];
 
@@ -867,12 +1093,22 @@ export function startChecklistServer(options: {
       });
 
       json(res, { ok: true });
+    } else if (url.pathname === "/api/image" && req.method === "GET") {
+      handlePiImage(req, res);
+    } else if (url.pathname === "/api/upload" && req.method === "POST") {
+      await handlePiUpload(req, res);
+    } else if (url.pathname === "/api/draft") {
+      await handlePiDraft(req, res, draftKey);
     } else {
       html(res, options.htmlContent);
     }
   });
 
   const port = listenOnRandomPort(server);
+
+  if (options.onReady) {
+    options.onReady(`http://localhost:${port}`, port);
+  }
 
   return {
     port,

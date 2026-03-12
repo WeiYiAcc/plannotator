@@ -30,7 +30,6 @@ import {
   startChecklistServer,
   handleChecklistServerReady,
   validateChecklist,
-  formatChecklistFeedback,
 } from "@plannotator/server/checklist";
 import { getGitContext, runGitDiff } from "@plannotator/server/git";
 import { writeRemoteShareLink } from "@plannotator/server/share-url";

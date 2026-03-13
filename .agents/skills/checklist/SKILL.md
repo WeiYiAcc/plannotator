@@ -49,6 +49,14 @@ As you read the diff, build a mental model:
 
 As you read the diff, count the number of diff hunks (`@@` markers) per file. You'll use these counts in step 3 to populate `fileDiffs` and `diffMap`.
 
+Also collect line counts and new/modified status for the PR Balance visualization:
+```bash
+# Line counts per file (added + removed)
+git diff --stat HEAD | head -n -1
+# New files (status "new"), everything else is "modified"
+git diff --diff-filter=A --name-only HEAD
+```
+
 ### 2. Decide What Needs Manual Verification
 
 Think about each change through the lens of what could go wrong that a human needs to catch. Consider categories like:
@@ -81,9 +89,9 @@ Produce a JSON object with this structure:
     "provider": "github"
   },
   "fileDiffs": {
-    "src/middleware/auth.ts": 5,
-    "src/pages/login.tsx": 3,
-    "src/lib/api-client.ts": 4
+    "src/middleware/auth.ts": { "hunks": 5, "lines": 320, "status": "modified" },
+    "src/pages/login.tsx": { "hunks": 3, "lines": 180, "status": "modified" },
+    "src/lib/api-client.ts": { "hunks": 4, "lines": 250, "status": "new" }
   },
   "items": [
     {
@@ -135,7 +143,7 @@ Produce a JSON object with this structure:
 - **`reason`**: One sentence explaining why automation can't fully cover this. "CSS grid rendering varies across browsers" is good. "Because it changed" is not.
 - **`files`**: File paths from the diff that this item relates to. Helps the developer trace your reasoning. Optional when `diffMap` is provided (derivable from its keys).
 - **`diffMap`**: Object mapping file paths to the number of diff hunks in that file that this check exercises. Paths must be keys in `fileDiffs`. Multiple items can cover the same hunks — that's expected (many-to-many). Example: `{ "src/middleware/auth.ts": 3, "src/pages/login.tsx": 2 }`.
-- **`fileDiffs`** (on the top-level checklist, not per-item): Object mapping each changed file's relative path to its total number of diff hunks. Count `@@` markers per file in the `git diff` output. This enables the coverage visualization toggle in the checklist UI. Example: `{ "src/middleware/auth.ts": 5, "src/pages/login.tsx": 3 }`.
+- **`fileDiffs`** (on the top-level checklist, not per-item): Object mapping each changed file's relative path to its diff metadata. Each value is `{ "hunks": N, "lines": N, "status": "new" | "modified" }`. `hunks` = count of `@@` markers in the diff. `lines` = total lines changed (from `git diff --stat`). `status` = `"new"` for added files, `"modified"` for everything else. This enables coverage visualization (hunks) and PR Balance (lines + status). Legacy format (plain number = hunk count) is still accepted but won't enable PR Balance.
 - **`critical`**: Reserve for items where failure means data loss, security vulnerability, or broken deployment. Typically 0–3 items per checklist.
 
 ### 4. Launch the Checklist UI

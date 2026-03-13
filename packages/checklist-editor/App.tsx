@@ -10,6 +10,7 @@ import { ChecklistGroup } from './components/ChecklistGroup';
 import { ChecklistAnnotationPanel } from './components/ChecklistAnnotationPanel';
 import { ProgressBar } from './components/ProgressBar';
 import { CoverageView } from './components/CoverageView';
+import { PRBalance } from './components/PRBalance';
 import { ViewModeToggle } from './components/ViewModeToggle';
 import { useChecklistState } from './hooks/useChecklistState';
 import { useChecklistProgress } from './hooks/useChecklistProgress';
@@ -36,17 +37,17 @@ const DEMO_CHECKLIST: Checklist = {
     provider: 'github' as const,
   },
   fileDiffs: {
-    'src/middleware/csrf.ts': 3,
-    'src/middleware/auth.ts': 5,
-    'src/middleware/session-migration.ts': 4,
-    'src/middleware/api-key.ts': 2,
-    'src/routes/api.ts': 2,
-    'src/lib/api-client.ts': 6,
-    'src/hooks/useAuth.ts': 4,
-    'src/pages/login.tsx': 8,
-    'src/auth/providers.ts': 5,
-    'src/components/AuthButton.tsx': 3,
-    'src/components/ErrorMessage.tsx': 2,
+    'src/middleware/csrf.ts': { hunks: 3, lines: 145, status: 'new' },
+    'src/middleware/auth.ts': { hunks: 5, lines: 320, status: 'modified' },
+    'src/middleware/session-migration.ts': { hunks: 4, lines: 210, status: 'new' },
+    'src/middleware/api-key.ts': { hunks: 2, lines: 85, status: 'modified' },
+    'src/routes/api.ts': { hunks: 2, lines: 60, status: 'modified' },
+    'src/lib/api-client.ts': { hunks: 6, lines: 480, status: 'modified' },
+    'src/hooks/useAuth.ts': { hunks: 4, lines: 190, status: 'new' },
+    'src/pages/login.tsx': { hunks: 8, lines: 650, status: 'modified' },
+    'src/auth/providers.ts': { hunks: 5, lines: 380, status: 'new' },
+    'src/components/AuthButton.tsx': { hunks: 3, lines: 120, status: 'modified' },
+    'src/components/ErrorMessage.tsx': { hunks: 2, lines: 75, status: 'new' },
   },
   items: [
     {
@@ -245,6 +246,7 @@ const ChecklistAppInner: React.FC<ChecklistAppInnerProps> = ({ checklist, origin
   const [notePopover, setNotePopover] = useState<NotePopoverState | null>(null);
   const [automations, setAutomations] = useState<ChecklistAutomations>({ postToPR: false, approveIfAllPass: false });
   const [viewMode, setViewMode] = useState<ChecklistViewMode>('checklist');
+  const [balanceOpen, setBalanceOpen] = useState(false);
   const documentRef = useRef<HTMLDivElement>(null);
   const globalCommentButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -252,6 +254,10 @@ const ChecklistAppInner: React.FC<ChecklistAppInnerProps> = ({ checklist, origin
   const { counts, categoryProgress, submitState } = useChecklistProgress(checklist.items, state.results);
   const coverageData = useChecklistCoverage(checklist.fileDiffs, checklist.items, state.results);
   const hasCoverage = coverageData !== null;
+  const hasBalance = useMemo(
+    () => checklist.fileDiffs && Object.values(checklist.fileDiffs).some(v => typeof v === 'object'),
+    [checklist.fileDiffs],
+  );
 
   const panelResize = useResizablePanel({
     storageKey: 'plannotator-checklist-panel-width',
@@ -547,6 +553,30 @@ const ChecklistAppInner: React.FC<ChecklistAppInnerProps> = ({ checklist, origin
               {hasCoverage && <ViewModeToggle mode={viewMode} onModeChange={setViewMode} />}
               <ProgressBar counts={counts} stopped={!!submitted} className="flex-1" />
             </div>
+
+            {/* PR Balance — collapsible orientation card */}
+            {hasBalance && checklist.fileDiffs && (
+              <div className="mt-3">
+                <button
+                  onClick={() => setBalanceOpen(o => !o)}
+                  className="flex items-center gap-1.5 text-[10px] font-medium text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+                >
+                  <svg
+                    className="w-3 h-3 transition-transform duration-150"
+                    style={{ transform: balanceOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                  </svg>
+                  PR Balance
+                </button>
+                {balanceOpen && (
+                  <div className="mt-2 bg-muted/50 rounded-lg p-3 border border-border/30">
+                    <PRBalance fileDiffs={checklist.fileDiffs} />
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* View content — swaps between checklist items and coverage */}
             {viewMode === 'coverage' && coverageData ? (

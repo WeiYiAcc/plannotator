@@ -744,14 +744,29 @@ export function validateChecklist(data: unknown): string[] {
     }
   }
 
-  // Validate optional fileDiffs field
+  // Validate optional fileDiffs field (accepts number or {hunks, lines, status})
   if (obj.fileDiffs !== undefined) {
     if (typeof obj.fileDiffs !== "object" || obj.fileDiffs === null || Array.isArray(obj.fileDiffs)) {
-      errors.push('"fileDiffs" must be an object mapping file paths to hunk counts.');
+      errors.push('"fileDiffs" must be an object mapping file paths to diff info.');
     } else {
       for (const [key, val] of Object.entries(obj.fileDiffs as Record<string, unknown>)) {
-        if (typeof val !== "number" || val < 1 || !Number.isInteger(val)) {
-          errors.push(`fileDiffs["${key}"] must be a positive integer.`);
+        if (typeof val === "number") {
+          if (val < 1 || !Number.isInteger(val)) {
+            errors.push(`fileDiffs["${key}"] must be a positive integer.`);
+          }
+        } else if (typeof val === "object" && val !== null) {
+          const info = val as Record<string, unknown>;
+          if (typeof info.hunks !== "number" || info.hunks < 1 || !Number.isInteger(info.hunks)) {
+            errors.push(`fileDiffs["${key}"].hunks must be a positive integer.`);
+          }
+          if (typeof info.lines !== "number" || info.lines < 1 || !Number.isInteger(info.lines)) {
+            errors.push(`fileDiffs["${key}"].lines must be a positive integer.`);
+          }
+          if (info.status !== "new" && info.status !== "modified") {
+            errors.push(`fileDiffs["${key}"].status must be "new" or "modified".`);
+          }
+        } else {
+          errors.push(`fileDiffs["${key}"] must be a positive integer or {hunks, lines, status} object.`);
         }
       }
     }

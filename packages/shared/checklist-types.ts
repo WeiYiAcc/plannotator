@@ -37,6 +37,16 @@ export interface ChecklistPR {
   provider: "github" | "gitlab" | "azure-devops";
 }
 
+/** Per-file diff metadata. Hunks drive coverage; lines + status drive PR Balance. */
+export interface FileDiffInfo {
+  /** Number of diff hunks (@@-delimited sections) */
+  hunks: number;
+  /** Total lines changed (added + removed) */
+  lines: number;
+  /** Whether the file is newly added or modified */
+  status: "new" | "modified";
+}
+
 export interface Checklist {
   /** Short title for the checklist */
   title: string;
@@ -46,9 +56,10 @@ export interface Checklist {
   items: ChecklistItem[];
   /** Optional associated pull/merge request */
   pr?: ChecklistPR;
-  /** Total diff hunks per file path (relative to repo root).
-   *  Presence of this field enables the coverage toggle view. */
-  fileDiffs?: Record<string, number>;
+  /** Per-file diff metadata (relative to repo root).
+   *  Presence enables coverage toggle + PR Balance visualization.
+   *  Values can be a number (legacy: hunk count only) or FileDiffInfo object. */
+  fileDiffs?: Record<string, number | FileDiffInfo>;
 }
 
 // --- Developer Response ---

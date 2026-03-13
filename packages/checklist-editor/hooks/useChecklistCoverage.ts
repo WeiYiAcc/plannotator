@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { ChecklistItem, ChecklistItemResult } from '@plannotator/shared/checklist-types';
+import type { ChecklistItem, ChecklistItemResult, FileDiffInfo } from '@plannotator/shared/checklist-types';
 
 export interface FileTreeNode {
   name: string;
@@ -39,15 +39,20 @@ interface FileCoverageEntry {
 // never exceeds the file's total hunks. This means failed items always
 // dominate overlapping coverage — a passing check doesn't hide a failure.
 
+/** Extract hunk count from a fileDiffs value (number or FileDiffInfo object). */
+function getHunks(val: number | FileDiffInfo): number {
+  return typeof val === 'number' ? val : val.hunks;
+}
+
 function computeFileCoverage(
-  fileDiffs: Record<string, number>,
+  fileDiffs: Record<string, number | FileDiffInfo>,
   items: ChecklistItem[],
   results: Map<string, ChecklistItemResult>,
 ): Map<string, FileCoverageEntry> {
   const coverage = new Map<string, FileCoverageEntry>();
 
-  for (const [file, total] of Object.entries(fileDiffs)) {
-    coverage.set(file, { total, passed: 0, failed: 0, skipped: 0 });
+  for (const [file, val] of Object.entries(fileDiffs)) {
+    coverage.set(file, { total: getHunks(val), passed: 0, failed: 0, skipped: 0 });
   }
 
   for (const item of items) {
@@ -152,7 +157,7 @@ function buildFileTree(
 }
 
 export function useChecklistCoverage(
-  fileDiffs: Record<string, number> | undefined,
+  fileDiffs: Record<string, number | FileDiffInfo> | undefined,
   items: ChecklistItem[],
   results: Map<string, ChecklistItemResult>,
 ): CoverageData | null {

@@ -35,7 +35,7 @@ import {
   runGitDiff,
   openBrowser,
 } from "./server.js";
-import { planDenyFeedback, codeReviewFeedback, codeReviewApproved, annotateFeedback } from "./feedback-templates.js";
+import { planDenyFeedback } from "./feedback-templates.js";
 
 // Load HTML at runtime (jiti doesn't support import attributes)
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -257,9 +257,9 @@ export default function plannotator(pi: ExtensionAPI): void {
 
       if (result.feedback) {
         if (result.approved) {
-          pi.sendUserMessage(codeReviewApproved());
+          pi.sendUserMessage(`# Code Review\n\nCode review completed — no changes requested.`);
         } else {
-          pi.sendUserMessage(codeReviewFeedback(result.feedback));
+          pi.sendUserMessage(`# Code Review Feedback\n\n${result.feedback}\n\nPlease address this feedback.`);
         }
       } else {
         ctx.ui.notify("Code review closed (no feedback).", "info");
@@ -303,7 +303,9 @@ export default function plannotator(pi: ExtensionAPI): void {
       server.stop();
 
       if (result.feedback) {
-        pi.sendUserMessage(annotateFeedback(result.feedback, absolutePath));
+        pi.sendUserMessage(
+          `# Markdown Annotations\n\nFile: ${absolutePath}\n\n${result.feedback}\n\nPlease address the annotation feedback above.`,
+        );
       } else {
         ctx.ui.notify("Annotation closed (no feedback).", "info");
       }

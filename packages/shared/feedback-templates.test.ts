@@ -1,10 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import {
-  planDenyFeedback,
-  codeReviewFeedback,
-  codeReviewApproved,
-  annotateFeedback,
-} from "./feedback-templates";
+import { planDenyFeedback } from "./feedback-templates";
 
 describe("feedback-templates", () => {
   /**
@@ -35,18 +30,6 @@ describe("feedback-templates", () => {
     expect(result).toContain(feedback);
   });
 
-  test("code review feedback preserves content verbatim", () => {
-    const feedback = "### Line 42 (new)\n```suggestion\nconst x = 1;\n```";
-    const result = codeReviewFeedback(feedback);
-    expect(result).toContain(feedback);
-  });
-
-  test("annotate feedback preserves content verbatim", () => {
-    const feedback = "## 1. Comment on: \"setup()\"\n> This needs error handling";
-    const result = annotateFeedback(feedback, "/src/main.ts");
-    expect(result).toContain(feedback);
-  });
-
   /**
    * Empty feedback should not produce a broken message — the agent needs
    * something actionable even if the user didn't write annotations.
@@ -54,20 +37,7 @@ describe("feedback-templates", () => {
   test("plan deny handles empty feedback gracefully", () => {
     const result = planDenyFeedback("");
     expect(result.length).toBeGreaterThan(50);
-    // Should not end with just whitespace or have a dangling separator
-    expect(result.trimEnd()).toBe(result.trimEnd());
-  });
-
-  /**
-   * The annotate template optionally includes a file path so the agent knows
-   * which file the annotations refer to.
-   */
-  test("annotate feedback includes file path when given, omits when not", () => {
-    const withPath = annotateFeedback("fix typo", "/src/readme.md");
-    const withoutPath = annotateFeedback("fix typo");
-
-    expect(withPath).toContain("/src/readme.md");
-    expect(withoutPath).not.toContain("File:");
+    expect(result).toBe(result.trimEnd());
   });
 
   /**
@@ -78,19 +48,7 @@ describe("feedback-templates", () => {
    */
   test("plan deny instructs agent to preserve plan title", () => {
     const result = planDenyFeedback("feedback");
-    // Must mention the heading / title and tell the agent not to change it
     expect(result.toLowerCase()).toContain("title");
     expect(result.toLowerCase()).toContain("heading");
-  });
-
-  /**
-   * Approved code review is a distinct message — it should NOT contain
-   * directive language that would confuse the agent into thinking there's work to do.
-   */
-  test("code review approved does not contain directive language", () => {
-    const result = codeReviewApproved();
-    expect(result).not.toContain("MUST");
-    expect(result).not.toContain("address");
-    expect(result).not.toContain("fix");
   });
 });

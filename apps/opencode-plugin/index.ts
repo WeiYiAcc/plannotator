@@ -29,7 +29,7 @@ import {
 import { getGitContext, runGitDiff } from "@plannotator/server/git";
 import { writeRemoteShareLink } from "@plannotator/server/share-url";
 import { resolveMarkdownFile } from "@plannotator/server/resolve-file";
-import { planDenyFeedback, codeReviewFeedback, codeReviewApproved, annotateFeedback } from "@plannotator/shared/feedback-templates";
+import { planDenyFeedback } from "@plannotator/shared/feedback-templates";
 
 // @ts-ignore - Bun import attribute for text
 import indexHtml from "./plannotator.html" with { type: "text" };
@@ -223,8 +223,8 @@ Do NOT proceed with implementation until your plan is approved.
             const targetAgent = result.agentSwitch || 'build';
 
             const message = result.approved
-              ? codeReviewApproved()
-              : codeReviewFeedback(result.feedback!);
+              ? `# Code Review\n\nCode review completed — no changes requested.`
+              : `# Code Review Feedback\n\n${result.feedback}\n\nPlease address this feedback.`;
 
             // Send feedback to agent
             try {
@@ -321,7 +321,7 @@ Do NOT proceed with implementation until your plan is approved.
                   parts: [
                     {
                       type: "text",
-                      text: annotateFeedback(result.feedback!, absolutePath),
+                      text: `# Markdown Annotations\n\nFile: ${absolutePath}\n\n${result.feedback}\n\nPlease address the annotation feedback above.`,
                     },
                   ],
                 },

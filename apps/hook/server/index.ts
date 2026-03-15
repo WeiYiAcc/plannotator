@@ -49,7 +49,7 @@ import { resolveMarkdownFile } from "@plannotator/server/resolve-file";
 import { registerSession, unregisterSession, listSessions } from "@plannotator/server/sessions";
 import { openBrowser } from "@plannotator/server/browser";
 import { detectProjectName } from "@plannotator/server/project";
-import { planDenyFeedback, codeReviewFeedback, codeReviewApproved, annotateFeedback } from "@plannotator/shared/feedback-templates";
+import { planDenyFeedback } from "@plannotator/shared/feedback-templates";
 import path from "path";
 
 // Embed the built HTML at compile time
@@ -185,9 +185,10 @@ if (args[0] === "sessions") {
 
   // Output feedback (captured by slash command)
   if (result.approved) {
-    console.log(codeReviewApproved());
+    console.log("Code review completed — no changes requested.");
   } else {
-    console.log(codeReviewFeedback(result.feedback!));
+    console.log(result.feedback);
+    console.log("\nThe reviewer has identified issues above. You must address all of them.");
   }
   process.exit(0);
 
@@ -273,7 +274,7 @@ if (args[0] === "sessions") {
   server.stop();
 
   // Output feedback (captured by slash command)
-  console.log(result.feedback ? annotateFeedback(result.feedback, absolutePath) : "No feedback provided.");
+  console.log(result.feedback || "No feedback provided.");
   process.exit(0);
 
 } else {

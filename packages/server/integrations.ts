@@ -344,7 +344,10 @@ export function generateOctarineFrontmatter(tags: string[]): string {
  */
 export async function saveToOctarine(config: OctarineConfig): Promise<IntegrationResult> {
   try {
-    const { plan, workspace, folder } = config;
+    const { plan } = config;
+    const workspace = config.workspace.trim();
+    if (!workspace) return { success: false, error: "Workspace is required" };
+    const folder = config.folder.trim() || 'plannotator';
 
     const filename = generateFilename(plan);
     // Strip .md — Octarine auto-adds it

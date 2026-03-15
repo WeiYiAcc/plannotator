@@ -355,7 +355,7 @@ export async function saveToOctarine(config: OctarineConfig): Promise<Integratio
     const frontmatter = generateOctarineFrontmatter(tags);
     const content = `${frontmatter}\n\n${plan}`;
 
-    const url = `octarine://create?path=${encodeURIComponent(path)}&content=${encodeURIComponent(content)}&workspace=${encodeURIComponent(workspace)}&openAfter=false`;
+    const url = `octarine://create?path=${encodeURIComponent(path)}&content=${encodeURIComponent(content)}&workspace=${encodeURIComponent(workspace)}&fresh=true&openAfter=false`;
 
     await $`open ${url}`.quiet();
 

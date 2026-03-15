@@ -23,6 +23,12 @@ export interface BearConfig {
   tagPosition?: 'prepend' | 'append';
 }
 
+export interface OctarineConfig {
+  plan: string;
+  workspace: string;
+  folder: string;
+}
+
 export interface IntegrationResult {
   success: boolean;
   error?: string;
@@ -315,6 +321,31 @@ export async function saveToBear(config: BearConfig): Promise<IntegrationResult>
     await $`open ${url}`.quiet();
 
     return { success: true };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { success: false, error: message };
+  }
+}
+
+// --- Octarine Integration ---
+
+/**
+ * Save plan to Octarine using octarine:// URI scheme
+ */
+export async function saveToOctarine(config: OctarineConfig): Promise<IntegrationResult> {
+  try {
+    const { plan, workspace, folder } = config;
+
+    const filename = generateFilename(plan);
+    // Strip .md — Octarine auto-adds it
+    const basename = filename.replace(/\.md$/, '');
+    const path = folder ? `${folder}/${basename}` : basename;
+
+    const url = `octarine://create?path=${encodeURIComponent(path)}&content=${encodeURIComponent(plan)}&workspace=${encodeURIComponent(workspace)}&openAfter=false`;
+
+    await $`open ${url}`.quiet();
+
+    return { success: true, path };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
     return { success: false, error: message };

@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { storage } from '../utils/storage';
 import { BUILT_IN_THEMES, type ThemeInfo } from '../utils/themeRegistry';
 
-type Mode = 'dark' | 'light' | 'system';
+export type Mode = 'dark' | 'light' | 'system';
 
 type ThemeProviderState = {
   // Mode (dark/light/system) — backward-compatible with old "theme" API
@@ -10,6 +10,7 @@ type ThemeProviderState = {
   setTheme: (mode: Mode) => void;
   mode: Mode;
   setMode: (mode: Mode) => void;
+  resolvedMode: 'dark' | 'light';
   // Color theme (palette)
   colorTheme: string;
   setColorTheme: (theme: string) => void;
@@ -21,6 +22,7 @@ const ThemeProviderContext = createContext<ThemeProviderState>({
   setTheme: () => null,
   mode: 'dark',
   setMode: () => null,
+  resolvedMode: 'dark',
   colorTheme: 'plannotator',
   setColorTheme: () => null,
   availableThemes: BUILT_IN_THEMES,
@@ -49,8 +51,15 @@ export function ThemeProvider({
     () => storage.getItem(colorThemeStorageKey) || defaultColorTheme
   );
 
-  // Resolve whether the .light class should be applied, respecting theme's modeSupport
-  const resolveClasses = (effectiveMode: 'dark' | 'light') => {
+  const [systemIsLight, setSystemIsLight] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches
+  );
+
+  // Compute resolved mode once — consumers use this instead of re-querying matchMedia
+  const resolvedMode: 'dark' | 'light' = mode === 'system' ? (systemIsLight ? 'light' : 'dark') : mode;
+
+  // Resolve classes from resolved mode + theme's modeSupport
+  const resolveClasses = useCallback((effectiveMode: 'dark' | 'light') => {
     const themeInfo = BUILT_IN_THEMES.find(t => t.id === colorTheme);
     const modeSupport = themeInfo?.modeSupport ?? 'both';
 
@@ -59,57 +68,44 @@ export function ThemeProvider({
     if (modeSupport === 'light-only') applyLight = true;
 
     return `theme-${colorTheme}${applyLight ? ' light' : ''}`;
-  };
+  }, [colorTheme]);
 
   // Apply theme class + mode class to document element
   useEffect(() => {
-    const root = window.document.documentElement;
-
-    let effectiveMode: 'dark' | 'light' = 'dark';
-    if (mode === 'system') {
-      effectiveMode = window.matchMedia('(prefers-color-scheme: light)').matches
-        ? 'light'
-        : 'dark';
-    } else {
-      effectiveMode = mode;
-    }
-
-    root.className = resolveClasses(effectiveMode);
-  }, [mode, colorTheme]);
+    window.document.documentElement.className = resolveClasses(resolvedMode);
+  }, [resolvedMode, resolveClasses]);
 
   // Listen for system theme changes
   useEffect(() => {
     if (mode !== 'system') return;
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: light)');
-    const handleChange = () => {
-      const root = window.document.documentElement;
-      root.className = resolveClasses(mediaQuery.matches ? 'light' : 'dark');
-    };
+    const handleChange = () => setSystemIsLight(mediaQuery.matches);
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, [mode, colorTheme]);
+  }, [mode]);
 
-  const setMode = (newMode: Mode) => {
+  const setMode = useCallback((newMode: Mode) => {
     storage.setItem(storageKey, newMode);
     setModeState(newMode);
-  };
+  }, [storageKey]);
 
-  const setColorTheme = (newTheme: string) => {
+  const setColorTheme = useCallback((newTheme: string) => {
     storage.setItem(colorThemeStorageKey, newTheme);
     setColorThemeState(newTheme);
-  };
+  }, [colorThemeStorageKey]);
 
-  const value: ThemeProviderState = {
+  const value = useMemo<ThemeProviderState>(() => ({
     theme: mode,
     setTheme: setMode,
     mode,
     setMode,
+    resolvedMode,
     colorTheme,
     setColorTheme,
     availableThemes: BUILT_IN_THEMES,
-  };
+  }), [mode, resolvedMode, colorTheme, setMode, setColorTheme]);
 
   return (
     <ThemeProviderContext.Provider value={value}>

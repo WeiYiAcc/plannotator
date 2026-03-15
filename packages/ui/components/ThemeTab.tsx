@@ -1,14 +1,8 @@
 import React from 'react';
-import { useTheme } from './ThemeProvider';
-
-type Mode = 'dark' | 'light' | 'system';
+import { useTheme, type Mode } from './ThemeProvider';
 
 export const ThemeTab: React.FC = () => {
-  const { mode, setMode, colorTheme, setColorTheme, availableThemes } = useTheme();
-
-  const resolvedMode: 'dark' | 'light' = mode === 'system'
-    ? (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
-    : mode;
+  const { mode, setMode, colorTheme, setColorTheme, availableThemes, resolvedMode } = useTheme();
 
   return (
     <>

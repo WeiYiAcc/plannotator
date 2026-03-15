@@ -53,7 +53,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
   canStage = false,
   stageError,
 }) => {
-  const { theme, colorTheme } = useTheme();
+  const { theme, colorTheme, resolvedMode } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const toolbar = useAnnotationToolbar({ patch, filePath, onLineSelection, onAddAnnotation, onEditAnnotation });
@@ -175,39 +175,36 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
     );
   }, [toolbar.handleLineSelectionEnd]);
 
-  // Determine theme type and inject resolved colors into @pierre/diffs shadow DOM.
-  // CSS custom properties don't cross the shadow boundary, so we compute the
-  // actual color values and pass them via unsafeCSS.
-  const [pierreThemeType, setPierreThemeType] = useState<'dark' | 'light'>('dark');
-  const [pierreUnsafeCSS, setPierreUnsafeCSS] = useState('');
+  // Inject resolved colors into @pierre/diffs shadow DOM.
+  // CSS custom properties don't cross the shadow boundary, so we read computed
+  // values and pass them via unsafeCSS. Single state object avoids split renders.
+  const [pierreTheme, setPierreTheme] = useState<{ type: 'dark' | 'light'; css: string }>({ type: 'dark', css: '' });
 
-  // Recompute after DOM class changes (useEffect runs after ThemeProvider's useEffect)
   useEffect(() => {
-    // Small delay to ensure ThemeProvider has applied the class
     requestAnimationFrame(() => {
-      const root = document.documentElement;
-      setPierreThemeType(root.classList.contains('light') ? 'light' : 'dark');
-
-      const styles = getComputedStyle(root);
+      const styles = getComputedStyle(document.documentElement);
       const bg = styles.getPropertyValue('--background').trim();
       const fg = styles.getPropertyValue('--foreground').trim();
       const muted = styles.getPropertyValue('--muted').trim();
       if (!bg || !fg) return;
-      setPierreUnsafeCSS(`
-        :host, [data-diff], [data-file], [data-diffs-header], [data-error-wrapper], [data-virtualizer-buffer] {
-          --diffs-bg: ${bg} !important;
-          --diffs-fg: ${fg} !important;
-          --diffs-dark-bg: ${bg};
-          --diffs-light-bg: ${bg};
-          --diffs-dark: ${fg};
-          --diffs-light: ${fg};
-        }
-        pre, code { background-color: ${bg} !important; }
-        [data-file-info] { background-color: ${muted} !important; }
-        [data-column-number] { background-color: ${bg} !important; }
-      `);
+      setPierreTheme({
+        type: resolvedMode,
+        css: `
+          :host, [data-diff], [data-file], [data-diffs-header], [data-error-wrapper], [data-virtualizer-buffer] {
+            --diffs-bg: ${bg} !important;
+            --diffs-fg: ${fg} !important;
+            --diffs-dark-bg: ${bg};
+            --diffs-light-bg: ${bg};
+            --diffs-dark: ${fg};
+            --diffs-light: ${fg};
+          }
+          pre, code { background-color: ${bg} !important; }
+          [data-file-info] { background-color: ${muted} !important; }
+          [data-column-number] { background-color: ${bg} !important; }
+        `,
+      });
     });
-  }, [theme, colorTheme]);
+  }, [resolvedMode, colorTheme]);
 
   return (
     <div ref={containerRef} className="h-full overflow-auto relative" onMouseMove={toolbar.handleMouseMove}>
@@ -228,8 +225,8 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({
           key={filePath}
           fileDiff={augmentedDiff}
           options={{
-            themeType: pierreThemeType,
-            unsafeCSS: pierreUnsafeCSS,
+            themeType: pierreTheme.type,
+            unsafeCSS: pierreTheme.css,
             diffStyle,
             diffIndicators: 'bars',
             hunkSeparators: 'line-info',

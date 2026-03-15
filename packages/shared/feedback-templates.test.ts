@@ -51,4 +51,13 @@ describe("feedback-templates", () => {
     expect(result.toLowerCase()).toContain("title");
     expect(result.toLowerCase()).toContain("heading");
   });
+
+  test("plan deny can include a plan file hint for file-based integrations", () => {
+    const result = planDenyFeedback("feedback", "exit_plan_mode", {
+      planFilePath: "plans/auth.md",
+    });
+
+    expect(result).toContain("Read plans/auth.md to see the current plan before editing it.");
+    expect(result).toContain("exit_plan_mode");
+  });
 });

@@ -446,7 +446,7 @@ export default function plannotator(pi: ExtensionAPI): void {
         content: [
           {
             type: "text",
-            text: planDenyFeedback(feedbackText, "exit_plan_mode"),
+            text: planDenyFeedback(feedbackText, "exit_plan_mode", { planFilePath }),
           },
         ],
         details: { approved: false, feedback: feedbackText },

@@ -8,22 +8,19 @@
  * - Modified: old content (red, struck through) above new content (green)
  * - Unchanged: normal rendering, slightly dimmed
  *
- * Supports annotation via web-highlighter — same pattern as Viewer.tsx.
+ * Annotation support via useAnnotationHighlighter hook.
  * Reuses parseMarkdownToBlocks() for rendering consistency with the plan view.
  */
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef } from "react";
 import hljs from "highlight.js";
-import Highlighter from "@plannotator/web-highlighter";
 import { parseMarkdownToBlocks } from "../../utils/parser";
-import { getIdentity } from "../../utils/identity";
-import type { Block, Annotation, EditorMode, ImageAttachment } from "../../types";
-import { AnnotationType } from "../../types";
+import type { Block, Annotation, EditorMode } from "../../types";
 import type { PlanDiffBlock } from "../../utils/planDiffEngine";
-import type { QuickLabel } from "../../utils/quickLabels";
 import { AnnotationToolbar } from "../AnnotationToolbar";
 import { CommentPopover } from "../CommentPopover";
 import { FloatingQuickLabelPicker } from "../FloatingQuickLabelPicker";
+import { useAnnotationHighlighter } from "../../hooks/useAnnotationHighlighter";
 
 interface PlanCleanDiffViewProps {
   blocks: PlanDiffBlock[];
@@ -37,52 +34,13 @@ interface PlanCleanDiffViewProps {
 
 export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
   blocks,
-  annotations,
+  annotations = [],
   onAddAnnotation,
   onSelectAnnotation,
-  selectedAnnotationId,
+  selectedAnnotationId = null,
   mode = "selection",
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const highlighterRef = useRef<Highlighter | null>(null);
-  const modeRef = useRef<EditorMode>(mode);
-  const onAddAnnotationRef = useRef(onAddAnnotation);
-  const pendingSourceRef = useRef<any>(null);
-  const justCreatedIdRef = useRef<string | null>(null);
-  const lastMousePosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-
-  const [toolbarState, setToolbarState] = useState<{
-    element: HTMLElement;
-    source: any;
-    selectionText: string;
-  } | null>(null);
-
-  const [commentPopover, setCommentPopover] = useState<{
-    anchorEl: HTMLElement;
-    contextText: string;
-    initialText?: string;
-    isGlobal: boolean;
-    source?: any;
-  } | null>(null);
-
-  const [quickLabelPicker, setQuickLabelPicker] = useState<{
-    anchorEl: HTMLElement;
-    cursorHint?: { x: number; y: number };
-    source?: any;
-  } | null>(null);
-
-  // Keep refs in sync
-  useEffect(() => { modeRef.current = mode; }, [mode]);
-  useEffect(() => { onAddAnnotationRef.current = onAddAnnotation; }, [onAddAnnotation]);
-
-  // Track mouse position for quick label picker
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      lastMousePosRef.current = { x: e.clientX, y: e.clientY };
-    };
-    document.addEventListener("mousemove", handleMouseMove);
-    return () => document.removeEventListener("mousemove", handleMouseMove);
-  }, []);
 
   // Resolve diff context from DOM — walks up to find data-diff-type
   const resolveDiffContext = (el: HTMLElement): Annotation["diffContext"] => {
@@ -95,301 +53,28 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     return undefined;
   };
 
-  // Create annotation from web-highlighter source
-  const createAnnotationFromSource = (
-    highlighter: Highlighter,
-    source: any,
-    type: AnnotationType,
-    text?: string,
-    images?: ImageAttachment[],
-    isQuickLabel?: boolean,
-    quickLabelTip?: string,
-  ) => {
-    const doms = highlighter.getDoms(source.id);
-    let blockId = "";
-    let startOffset = 0;
-    let diffContext: Annotation["diffContext"];
-
-    if (doms?.length > 0) {
-      const el = doms[0] as HTMLElement;
-      // Walk up to find data-block-id
-      let parent = el.parentElement;
-      while (parent && !parent.dataset.blockId) {
-        parent = parent.parentElement;
-      }
-      if (parent?.dataset.blockId) {
-        blockId = parent.dataset.blockId;
-        const blockText = parent.textContent || "";
-        const beforeText = blockText.split(source.text)[0];
-        startOffset = beforeText?.length || 0;
-      }
-      // Resolve diff context
-      diffContext = resolveDiffContext(el);
-    }
-
-    const newAnnotation: Annotation = {
-      id: source.id,
-      blockId,
-      startOffset,
-      endOffset: startOffset + source.text.length,
-      type,
-      text,
-      originalText: source.text,
-      createdA: Date.now(),
-      author: getIdentity(),
-      startMeta: source.startMeta,
-      endMeta: source.endMeta,
-      images,
-      ...(isQuickLabel ? { isQuickLabel: true } : {}),
-      ...(quickLabelTip ? { quickLabelTip } : {}),
-      ...(diffContext ? { diffContext } : {}),
-    };
-
-    if (type === AnnotationType.DELETION) {
-      highlighter.addClass("deletion", source.id);
-    } else if (type === AnnotationType.COMMENT) {
-      highlighter.addClass("comment", source.id);
-    }
-
-    justCreatedIdRef.current = newAnnotation.id;
-    onAddAnnotationRef.current?.(newAnnotation);
-  };
-
-  // Initialize web-highlighter
-  useEffect(() => {
-    if (!containerRef.current || !onAddAnnotation) return;
-
-    const highlighter = new Highlighter({
-      $root: containerRef.current,
-      exceptSelectors: [".annotation-toolbar", "button"],
-      wrapTag: "mark",
-      style: { className: "annotation-highlight" },
-    });
-
-    highlighterRef.current = highlighter;
-
-    highlighter.on(Highlighter.event.CREATE, ({ sources }: { sources: any[] }) => {
-      if (sources.length > 0) {
-        const source = sources[0];
-        const doms = highlighter.getDoms(source.id);
-        if (doms?.length > 0) {
-          // Clean up previous pending
-          if (pendingSourceRef.current) {
-            highlighter.remove(pendingSourceRef.current.id);
-            pendingSourceRef.current = null;
-          }
-          setCommentPopover(null);
-          setQuickLabelPicker(null);
-
-          if (modeRef.current === "redline") {
-            createAnnotationFromSource(highlighter, source, AnnotationType.DELETION);
-            window.getSelection()?.removeAllRanges();
-          } else if (modeRef.current === "comment") {
-            pendingSourceRef.current = source;
-            setCommentPopover({
-              anchorEl: doms[0] as HTMLElement,
-              contextText: source.text.slice(0, 80),
-              isGlobal: false,
-              source,
-            });
-          } else if (modeRef.current === "quickLabel") {
-            pendingSourceRef.current = source;
-            setQuickLabelPicker({
-              anchorEl: doms[0] as HTMLElement,
-              cursorHint: lastMousePosRef.current,
-              source,
-            });
-          } else {
-            // Selection mode — show toolbar
-            pendingSourceRef.current = source;
-            setToolbarState({
-              element: doms[0] as HTMLElement,
-              source,
-              selectionText: source.text,
-            });
-          }
-        }
-      }
-    });
-
-    highlighter.on(Highlighter.event.CLICK, ({ id }: { id: string }) => {
-      onSelectAnnotation?.(id);
-    });
-
-    highlighter.run();
-
-    // Mobile bridge
-    const isTouchPrimary = window.matchMedia("(pointer: coarse)").matches;
-    let selectionTimer: ReturnType<typeof setTimeout>;
-    const handleSelectionChange = isTouchPrimary
-      ? () => {
-          clearTimeout(selectionTimer);
-          selectionTimer = setTimeout(() => {
-            const sel = window.getSelection();
-            if (!sel || sel.isCollapsed || sel.rangeCount === 0) return;
-            if (!containerRef.current?.contains(sel.anchorNode)) return;
-            highlighter.fromRange(sel.getRangeAt(0));
-          }, 400);
-        }
-      : null;
-
-    if (handleSelectionChange) {
-      document.addEventListener("selectionchange", handleSelectionChange);
-    }
-
-    return () => {
-      if (handleSelectionChange) {
-        clearTimeout(selectionTimer);
-        document.removeEventListener("selectionchange", handleSelectionChange);
-      }
-      highlighter.dispose();
-    };
-  }, [onAddAnnotation, onSelectAnnotation]);
-
-  // Apply CSS classes to existing annotations
-  useEffect(() => {
-    const highlighter = highlighterRef.current;
-    if (!highlighter || !annotations) return;
-
-    annotations.forEach((ann) => {
-      try {
-        const doms = highlighter.getDoms(ann.id);
-        if (doms && doms.length > 0) {
-          if (ann.type === AnnotationType.DELETION) {
-            highlighter.addClass("deletion", ann.id);
-          } else if (ann.type === AnnotationType.COMMENT) {
-            highlighter.addClass("comment", ann.id);
-          }
-        }
-      } catch {}
-    });
-  }, [annotations]);
-
-  // Scroll to selected annotation
-  useEffect(() => {
-    if (!selectedAnnotationId || !containerRef.current) return;
-
-    // Skip scroll if we just created this annotation
-    if (justCreatedIdRef.current === selectedAnnotationId) {
-      justCreatedIdRef.current = null;
-      return;
-    }
-
-    const highlighter = highlighterRef.current;
-    let targetElements: Element[] = [];
-
-    if (highlighter) {
-      try {
-        const doms = highlighter.getDoms(selectedAnnotationId);
-        if (doms && doms.length > 0) targetElements = Array.from(doms);
-      } catch {}
-    }
-
-    if (targetElements.length === 0) {
-      const manualMarks = containerRef.current.querySelectorAll(
-        `[data-bind-id="${selectedAnnotationId}"]`
-      );
-      if (manualMarks.length > 0) targetElements = Array.from(manualMarks);
-    }
-
-    if (targetElements.length === 0) return;
-
-    targetElements.forEach((el) => el.classList.add("focused"));
-    targetElements[0].scrollIntoView({ behavior: "smooth", block: "center" });
-
-    // Remove focused class after animation
-    const timer = setTimeout(() => {
-      targetElements.forEach((el) => el.classList.remove("focused"));
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [selectedAnnotationId]);
-
-  // Toolbar handlers
-  const handleAnnotate = (type: AnnotationType) => {
-    const highlighter = highlighterRef.current;
-    if (!toolbarState || !highlighter) return;
-    createAnnotationFromSource(highlighter, toolbarState.source, type);
-    pendingSourceRef.current = null;
-    setToolbarState(null);
-    window.getSelection()?.removeAllRanges();
-  };
-
-  const handleQuickLabel = (label: QuickLabel) => {
-    const highlighter = highlighterRef.current;
-    if (!toolbarState || !highlighter) return;
-    createAnnotationFromSource(
-      highlighter, toolbarState.source, AnnotationType.COMMENT,
-      `${label.emoji} ${label.text}`, undefined, true, label.tip
-    );
-    pendingSourceRef.current = null;
-    setToolbarState(null);
-    window.getSelection()?.removeAllRanges();
-  };
-
-  const handleToolbarClose = () => {
-    if (toolbarState && highlighterRef.current) {
-      highlighterRef.current.remove(toolbarState.source.id);
-    }
-    pendingSourceRef.current = null;
-    setToolbarState(null);
-    window.getSelection()?.removeAllRanges();
-  };
-
-  const handleRequestComment = (initialChar?: string) => {
-    if (!toolbarState) return;
-    setCommentPopover({
-      anchorEl: toolbarState.element,
-      contextText: toolbarState.selectionText.slice(0, 80),
-      initialText: initialChar,
-      isGlobal: false,
-      source: toolbarState.source,
-    });
-    setToolbarState(null);
-  };
-
-  const handleCommentSubmit = (text: string, images?: ImageAttachment[]) => {
-    if (!commentPopover) return;
-    if (commentPopover.source && highlighterRef.current) {
-      createAnnotationFromSource(
-        highlighterRef.current, commentPopover.source,
-        AnnotationType.COMMENT, text, images
-      );
-      pendingSourceRef.current = null;
-      window.getSelection()?.removeAllRanges();
-    }
-    setCommentPopover(null);
-  };
-
-  const handleCommentClose = useCallback(() => {
-    setCommentPopover((prev) => {
-      if (prev?.source && highlighterRef.current) {
-        highlighterRef.current.remove(prev.source.id);
-        pendingSourceRef.current = null;
-      }
-      return null;
-    });
-    window.getSelection()?.removeAllRanges();
-  }, []);
-
-  const handleFloatingQuickLabel = useCallback((label: QuickLabel) => {
-    if (!quickLabelPicker?.source || !highlighterRef.current) return;
-    createAnnotationFromSource(
-      highlighterRef.current, quickLabelPicker.source, AnnotationType.COMMENT,
-      `${label.emoji} ${label.text}`, undefined, true, label.tip
-    );
-    pendingSourceRef.current = null;
-    setQuickLabelPicker(null);
-    window.getSelection()?.removeAllRanges();
-  }, [quickLabelPicker]);
-
-  const handleQuickLabelPickerDismiss = useCallback(() => {
-    if (quickLabelPicker?.source && highlighterRef.current) {
-      highlighterRef.current.remove(quickLabelPicker.source.id);
-      pendingSourceRef.current = null;
-    }
-    setQuickLabelPicker(null);
-    window.getSelection()?.removeAllRanges();
-  }, [quickLabelPicker]);
+  const {
+    toolbarState,
+    commentPopover,
+    quickLabelPicker,
+    handleAnnotate,
+    handleQuickLabel,
+    handleToolbarClose,
+    handleRequestComment,
+    handleCommentSubmit,
+    handleCommentClose,
+    handleFloatingQuickLabel,
+    handleQuickLabelPickerDismiss,
+  } = useAnnotationHighlighter({
+    containerRef,
+    annotations,
+    onAddAnnotation,
+    onSelectAnnotation,
+    selectedAnnotationId,
+    mode,
+    enabled: !!onAddAnnotation,
+    resolveContext: resolveDiffContext,
+  });
 
   return (
     <div ref={containerRef} className="space-y-1">
@@ -416,7 +101,7 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
         <CommentPopover
           anchorEl={commentPopover.anchorEl}
           contextText={commentPopover.contextText}
-          isGlobal={commentPopover.isGlobal}
+          isGlobal={false}
           initialText={commentPopover.initialText}
           onSubmit={handleCommentSubmit}
           onClose={handleCommentClose}
@@ -670,7 +355,6 @@ const SimpleCodeBlock: React.FC<{ block: Block }> = ({ block }) => {
 
 /**
  * Inline markdown renderer — handles bold, italic, inline code, links.
- * Duplicated from Viewer for self-containment.
  */
 const InlineMarkdown: React.FC<{ text: string }> = ({ text }) => {
   const parts: React.ReactNode[] = [];

@@ -14,6 +14,7 @@
       "dependencies": {
         "@plannotator/editor": "workspace:*",
         "@plannotator/server": "workspace:*",
+        "@plannotator/shared": "workspace:*",
         "@plannotator/ui": "workspace:*",
         "@tailwindcss/vite": "^4.1.18",
         "react": "^19.2.3",
@@ -56,6 +57,7 @@
       },
       "devDependencies": {
         "@plannotator/server": "workspace:*",
+        "@plannotator/shared": "workspace:*",
       },
       "peerDependencies": {
         "bun": ">=1.0.0",

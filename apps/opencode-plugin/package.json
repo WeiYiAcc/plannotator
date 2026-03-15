@@ -38,7 +38,8 @@
     "@opencode-ai/plugin": "^1.1.10"
   },
   "devDependencies": {
-    "@plannotator/server": "workspace:*"
+    "@plannotator/server": "workspace:*",
+    "@plannotator/shared": "workspace:*"
   },
   "peerDependencies": {
     "bun": ">=1.0.0"

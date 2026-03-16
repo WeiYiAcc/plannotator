@@ -38,6 +38,7 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
   const modeRef = useRef<EditorMode>(mode);
   const onAddAnnotationRef = useRef(onAddAnnotation);
   const hoverTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [hoveredBlock, setHoveredBlock] = useState<{
     element: HTMLElement;
@@ -66,19 +67,23 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
   useEffect(() => { modeRef.current = mode; }, [mode]);
   useEffect(() => { onAddAnnotationRef.current = onAddAnnotation; }, [onAddAnnotation]);
 
-  // Clean up hover timeout on unmount
+  // Clean up timers on unmount
   useEffect(() => {
     return () => {
       if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
     };
   }, []);
 
   // Scroll to selected annotation's diff block
+  // Only depends on selectedAnnotationId — annotations ref is read but not a trigger
+  const annotationsRef = useRef(annotations);
+  annotationsRef.current = annotations;
+
   useEffect(() => {
     if (!selectedAnnotationId) return;
 
-    // Find the annotation to get its blockId
-    const ann = annotations.find(a => a.id === selectedAnnotationId);
+    const ann = annotationsRef.current.find(a => a.id === selectedAnnotationId);
     if (!ann?.blockId?.startsWith('diff-block-')) return;
 
     const idx = ann.blockId.replace('diff-block-', '');
@@ -92,18 +97,25 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
       el.classList.remove('annotation-highlight', 'focused');
     }, 2000);
     return () => clearTimeout(timer);
-  }, [selectedAnnotationId, annotations]);
+  }, [selectedAnnotationId]);
 
-  // Build set of annotated block contents for highlight rings
-  const annotatedContents = React.useMemo(() => {
+  // Build set of annotated block IDs for highlight rings
+  const annotatedBlockIds = React.useMemo(() => {
     const set = new Set<string>();
     annotations.forEach(ann => {
-      if (ann.diffContext && ann.originalText) {
-        set.add(ann.originalText);
+      if (ann.diffContext && ann.blockId) {
+        set.add(ann.blockId);
       }
     });
     return set;
   }, [annotations]);
+
+  /** Resolve content for a diff block section (handles modified blocks with old/new sides) */
+  const getBlockContent = useCallback((block: PlanDiffBlock, diffContext: Annotation['diffContext']) =>
+    block.type === 'modified' && diffContext === 'removed'
+      ? block.oldContent || block.content
+      : block.content
+  , []);
 
   const createDiffAnnotation = useCallback((
     block: PlanDiffBlock,
@@ -115,19 +127,18 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     isQuickLabel?: boolean,
     quickLabelTip?: string,
   ) => {
-    const content = block.type === 'modified' && diffContext === 'removed'
-      ? block.oldContent || block.content
-      : block.content;
+    const content = getBlockContent(block, diffContext);
+    const now = Date.now();
 
     const newAnnotation: Annotation = {
-      id: `diff-${Date.now()}-${index}`,
+      id: `diff-${now}-${index}`,
       blockId: `diff-block-${index}`,
       startOffset: 0,
       endOffset: content.length,
       type,
       text,
       originalText: content.slice(0, 500),
-      createdA: Date.now(),
+      createdA: now,
       author: getIdentity(),
       images,
       diffContext,
@@ -136,7 +147,7 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     };
 
     onAddAnnotationRef.current?.(newAnnotation);
-  }, []);
+  }, [getBlockContent]);
 
   // Hover handlers
   const handleHover = useCallback((element: HTMLElement, block: PlanDiffBlock, index: number, diffContext: Annotation['diffContext']) => {
@@ -153,9 +164,10 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
   const handleLeave = useCallback(() => {
     hoverTimeoutRef.current = setTimeout(() => {
       setIsExiting(true);
-      setTimeout(() => {
+      exitTimerRef.current = setTimeout(() => {
         setHoveredBlock(null);
         setIsExiting(false);
+        exitTimerRef.current = null;
       }, 150);
     }, 100);
   }, []);
@@ -165,6 +177,7 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     if (!hoveredBlock) return;
     createDiffAnnotation(hoveredBlock.block, hoveredBlock.index, hoveredBlock.diffContext, type);
     setHoveredBlock(null);
+    setIsExiting(false);
   };
 
   const handleQuickLabel = (label: QuickLabel) => {
@@ -174,17 +187,17 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
       AnnotationType.COMMENT, `${label.emoji} ${label.text}`, undefined, true, label.tip
     );
     setHoveredBlock(null);
+    setIsExiting(false);
   };
 
   const handleToolbarClose = () => {
     setHoveredBlock(null);
+    setIsExiting(false);
   };
 
   const handleRequestComment = (initialChar?: string) => {
     if (!hoveredBlock) return;
-    const content = hoveredBlock.block.type === 'modified' && hoveredBlock.diffContext === 'removed'
-      ? hoveredBlock.block.oldContent || hoveredBlock.block.content
-      : hoveredBlock.block.content;
+    const content = getBlockContent(hoveredBlock.block, hoveredBlock.diffContext);
     setCommentPopover({
       anchorEl: hoveredBlock.element,
       contextText: content.slice(0, 80),
@@ -227,9 +240,7 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     if (modeRef.current === 'redline') {
       createDiffAnnotation(block, index, diffContext, AnnotationType.DELETION);
     } else if (modeRef.current === 'comment') {
-      const content = block.type === 'modified' && diffContext === 'removed'
-        ? block.oldContent || block.content
-        : block.content;
+      const content = getBlockContent(block, diffContext);
       setCommentPopover({
         anchorEl: element,
         contextText: content.slice(0, 80),
@@ -240,10 +251,10 @@ export const PlanCleanDiffView: React.FC<PlanCleanDiffViewProps> = ({
     } else if (modeRef.current === 'quickLabel') {
       setQuickLabelPicker({ anchorEl: element, block, index, diffContext });
     }
-  }, [createDiffAnnotation]);
+  }, [createDiffAnnotation, getBlockContent]);
 
-  // Check if a block's content has been annotated (for highlight ring)
-  const isBlockAnnotated = (content: string) => annotatedContents.has(content.slice(0, 500));
+  // Check if a block index has been annotated (for highlight ring)
+  const isBlockAnnotated = (index: number) => annotatedBlockIds.has(`diff-block-${index}`);
 
   return (
     <div className="space-y-1">
@@ -313,7 +324,7 @@ interface DiffBlockRendererProps {
   index: number;
   hoveredIndex: number | null;
   hoveredDiffContext?: Annotation['diffContext'];
-  isBlockAnnotated: (content: string) => boolean;
+  isBlockAnnotated: (index: number) => boolean;
   onHover?: (element: HTMLElement, diffContext: Annotation['diffContext']) => void;
   onLeave?: () => void;
   onClick?: (element: HTMLElement, diffContext: Annotation['diffContext']) => void;
@@ -332,9 +343,9 @@ const DiffBlockRenderer: React.FC<DiffBlockRendererProps> = ({
   const isHovered = (diffContext: Annotation['diffContext']) =>
     hoveredIndex === index && hoveredDiffContext === diffContext;
 
-  const ringClass = (diffContext: Annotation['diffContext'], content: string) => {
+  const ringClass = (diffContext: Annotation['diffContext']) => {
     if (isHovered(diffContext)) return 'ring-1 ring-primary/30 rounded';
-    if (isBlockAnnotated(content)) return 'ring-2 ring-accent rounded outline-offset-2';
+    if (isBlockAnnotated(index)) return 'ring-2 ring-accent rounded outline-offset-2';
     return '';
   };
 
@@ -349,7 +360,7 @@ const DiffBlockRenderer: React.FC<DiffBlockRendererProps> = ({
     case "added":
       return (
         <div
-          className={`plan-diff-added transition-shadow ${ringClass('added', block.content)}`}
+          className={`plan-diff-added transition-shadow ${ringClass('added')}`}
           data-diff-block-index={index}
           {...hoverProps('added')}
         >
@@ -360,7 +371,7 @@ const DiffBlockRenderer: React.FC<DiffBlockRendererProps> = ({
     case "removed":
       return (
         <div
-          className={`plan-diff-removed line-through decoration-destructive/30 opacity-70 transition-shadow ${ringClass('removed', block.content)}`}
+          className={`plan-diff-removed line-through decoration-destructive/30 opacity-70 transition-shadow ${ringClass('removed')}`}
           data-diff-block-index={index}
           {...hoverProps('removed')}
         >
@@ -372,13 +383,13 @@ const DiffBlockRenderer: React.FC<DiffBlockRendererProps> = ({
       return (
         <div data-diff-block-index={index}>
           <div
-            className={`plan-diff-removed line-through decoration-destructive/30 opacity-60 transition-shadow ${ringClass('removed', block.oldContent!)}`}
+            className={`plan-diff-removed line-through decoration-destructive/30 opacity-60 transition-shadow ${ringClass('removed')}`}
             {...hoverProps('removed')}
           >
             <MarkdownChunk content={block.oldContent!} />
           </div>
           <div
-            className={`plan-diff-added transition-shadow ${ringClass('modified', block.content)}`}
+            className={`plan-diff-added transition-shadow ${ringClass('modified')}`}
             {...hoverProps('modified')}
           >
             <MarkdownChunk content={block.content} />

@@ -447,7 +447,7 @@ export function useAnnotationHighlighter({
   // Apply CSS classes to existing annotations
   useEffect(() => {
     const highlighter = highlighterRef.current;
-    if (!highlighter || !annotations) return;
+    if (!highlighter) return;
 
     annotations.forEach(ann => {
       try {

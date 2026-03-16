@@ -97,7 +97,9 @@ const App: React.FC = () => {
   const [showExportDropdown, setShowExportDropdown] = useState(false);
   const [initialExportTab, setInitialExportTab] = useState<'share' | 'annotations' | 'notes'>();
   const [noteSaveToast, setNoteSaveToast] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  // Plan diff state
+  // Plan diff state — memoize filtered annotation lists to avoid new references per render
+  const diffAnnotations = useMemo(() => annotations.filter(a => !!a.diffContext), [annotations]);
+  const viewerAnnotations = useMemo(() => annotations.filter(a => !a.diffContext), [annotations]);
   const [isPlanDiffActive, setIsPlanDiffActive] = useState(false);
   const [planDiffMode, setPlanDiffMode] = useState<PlanDiffMode>('clean');
   const [previousPlan, setPreviousPlan] = useState<string | null>(null);
@@ -1266,7 +1268,7 @@ const App: React.FC = () => {
                   baseVersionLabel={planDiff.diffBaseVersion != null ? `v${planDiff.diffBaseVersion}` : undefined}
                   baseVersion={planDiff.diffBaseVersion ?? undefined}
                   maxWidth={planMaxWidth}
-                  annotations={annotations.filter(a => !!a.diffContext)}
+                  annotations={diffAnnotations}
                   onAddAnnotation={handleAddAnnotation}
                   onSelectAnnotation={handleSelectAnnotation}
                   selectedAnnotationId={selectedAnnotationId}
@@ -1279,7 +1281,7 @@ const App: React.FC = () => {
                   blocks={blocks}
                   markdown={markdown}
                   frontmatter={frontmatter}
-                  annotations={annotations.filter(a => !a.diffContext)}
+                  annotations={viewerAnnotations}
                   onAddAnnotation={handleAddAnnotation}
                   onSelectAnnotation={handleSelectAnnotation}
                   selectedAnnotationId={selectedAnnotationId}

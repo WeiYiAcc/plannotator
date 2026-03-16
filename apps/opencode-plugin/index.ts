@@ -4,7 +4,7 @@
  * Provides iterative planning with interactive browser-based plan review.
  *
  * When the agent is in plan mode:
- * - Injects planning prompt directing the agent to write plans in ~/.plannotator/session-plans/opencode/
+ * - Injects planning prompt directing the agent to write plans in $XDG_DATA_HOME/opencode/plans/
  * - Agent creates a uniquely-named plan file, revises it on feedback
  * - submit_plan(path) reads the plan from disk and opens browser UI
  * - plan_exit suppressed in favor of submit_plan (experimental mode compatibility)

@@ -1229,7 +1229,7 @@ const App: React.FC = () => {
           )}
 
           {/* Document Area */}
-          <main ref={containerRef} className="flex-1 min-w-0 overflow-y-auto bg-grid relative z-10">
+          <main ref={containerRef} className="flex-1 min-w-0 overflow-y-auto bg-grid">
             <ConfirmDialog
               isOpen={!!draftBanner}
               onClose={dismissDraft}
@@ -1240,7 +1240,7 @@ const App: React.FC = () => {
               cancelText="Dismiss"
               showCancel
             />
-            <div className="min-h-full flex flex-col items-center px-2 py-3 md:px-10 md:py-8 xl:px-16">
+            <div className="min-h-full flex flex-col items-center px-2 py-3 md:px-10 md:py-8 xl:px-16 relative z-10">
               {/* Annotation Toolstrip (hidden during plan diff) */}
               {!isPlanDiffActive && (
                 <div className="w-full mb-3 md:mb-4 flex items-center justify-start" style={{ maxWidth: planMaxWidth }}>

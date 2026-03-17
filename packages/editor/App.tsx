@@ -10,6 +10,7 @@ import { ThemeProvider } from '@plannotator/ui/components/ThemeProvider';
 import { ModeToggle } from '@plannotator/ui/components/ModeToggle';
 import { AnnotationToolstrip } from '@plannotator/ui/components/AnnotationToolstrip';
 import { AutomationsDropdown } from '@plannotator/ui/components/AutomationsDropdown';
+import { formatPromptHooks } from '@plannotator/ui/utils/automations';
 import { TaterSpriteRunning } from '@plannotator/ui/components/TaterSpriteRunning';
 import { TaterSpritePullup } from '@plannotator/ui/components/TaterSpritePullup';
 import { Settings } from '@plannotator/ui/components/Settings';
@@ -87,6 +88,7 @@ const App: React.FC = () => {
   const [imageBaseDir, setImageBaseDir] = useState<string | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [activeHooks, setActiveHooks] = useState<string[]>([]);
   const [submitted, setSubmitted] = useState<'approved' | 'denied' | null>(null);
   const [pendingPasteImage, setPendingPasteImage] = useState<{ file: File; blobUrl: string; initialName: string } | null>(null);
   const [showPermissionModeSetup, setShowPermissionModeSetup] = useState(false);
@@ -584,8 +586,11 @@ const App: React.FC = () => {
       const hasDocAnnotations = Array.from(linkedDocHook.getDocAnnotations().values()).some(
         (d) => d.annotations.length > 0 || d.globalAttachments.length > 0
       );
+      const hookText = formatPromptHooks(activeHooks, 'plan');
       if (annotations.length > 0 || globalAttachments.length > 0 || hasDocAnnotations || editorAnnotations.length > 0) {
-        body.feedback = annotationsOutput;
+        body.feedback = annotationsOutput + hookText;
+      } else if (hookText) {
+        body.feedback = hookText;
       }
 
       await fetch('/api/approve', {
@@ -607,7 +612,7 @@ const App: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          feedback: annotationsOutput,
+          feedback: annotationsOutput + formatPromptHooks(activeHooks, 'plan'),
           planSave: {
             enabled: planSaveSettings.enabled,
             ...(planSaveSettings.customPath && { customPath: planSaveSettings.customPath }),
@@ -628,7 +633,7 @@ const App: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          feedback,
+          feedback: feedback + formatPromptHooks(activeHooks, 'plan'),
           planSave: {
             enabled: planSaveSettings.enabled,
             ...(planSaveSettings.customPath && { customPath: planSaveSettings.customPath }),
@@ -1277,6 +1282,8 @@ const App: React.FC = () => {
                     <AutomationsDropdown
                       context="plan"
                       onSend={handleAutomationSend}
+                      activeHooks={activeHooks}
+                      onToggleHook={id => setActiveHooks(prev => prev.includes(id) ? prev.filter(h => h !== id) : [...prev, id])}
                       disabled={isSubmitting || !!submitted}
                     />
                   </div>

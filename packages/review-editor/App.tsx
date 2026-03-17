@@ -16,6 +16,7 @@ import { useEditorAnnotations } from '@plannotator/ui/hooks/useEditorAnnotations
 import { exportEditorAnnotations } from '@plannotator/ui/utils/parser';
 import { ResizeHandle } from '@plannotator/ui/components/ResizeHandle';
 import { AutomationsDropdown } from '@plannotator/ui/components/AutomationsDropdown';
+import { formatPromptHooks } from '@plannotator/ui/utils/automations';
 import { DiffViewer } from './components/DiffViewer';
 import { ReviewPanel } from './components/ReviewPanel';
 import { FileTree } from './components/FileTree';
@@ -170,6 +171,7 @@ const ReviewApp: React.FC = () => {
   const [isLoadingDiff, setIsLoadingDiff] = useState(false);
   const [diffError, setDiffError] = useState<string | null>(null);
   const [isSendingFeedback, setIsSendingFeedback] = useState(false);
+  const [activeHooks, setActiveHooks] = useState<string[]>([]);
   const [isApproving, setIsApproving] = useState(false);
   const [submitted, setSubmitted] = useState<'approved' | 'feedback' | false>(false);
   const [showApproveWarning, setShowApproveWarning] = useState(false);
@@ -552,7 +554,7 @@ const ReviewApp: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           approved: false,
-          feedback: feedbackMarkdown,
+          feedback: feedbackMarkdown + formatPromptHooks(activeHooks, 'review'),
           annotations,
           ...(effectiveAgent && { agentSwitch: effectiveAgent }),
         }),
@@ -568,7 +570,7 @@ const ReviewApp: React.FC = () => {
       setTimeout(() => setCopyFeedback(null), 2000);
       setIsSendingFeedback(false);
     }
-  }, [totalAnnotationCount, feedbackMarkdown, annotations]);
+  }, [totalAnnotationCount, feedbackMarkdown, annotations, activeHooks]);
 
   const handleAutomationSend = useCallback(async (feedback: string) => {
     setIsSendingFeedback(true);
@@ -580,7 +582,7 @@ const ReviewApp: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           approved: false,
-          feedback,
+          feedback: feedback + formatPromptHooks(activeHooks, 'review'),
           annotations: [],
           ...(effectiveAgent && { agentSwitch: effectiveAgent }),
         }),
@@ -593,18 +595,19 @@ const ReviewApp: React.FC = () => {
     } catch {
       setIsSendingFeedback(false);
     }
-  }, []);
+  }, [activeHooks]);
 
   // Approve without feedback (LGTM)
   const handleApprove = useCallback(async () => {
     setIsApproving(true);
+    const hookText = formatPromptHooks(activeHooks, 'review');
     try {
       const res = await fetch('/api/feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           approved: true,
-          feedback: 'LGTM - no changes requested.', // unused — integrations branch on `approved` flag
+          feedback: hookText || 'LGTM - no changes requested.',
           annotations: [],
         }),
       });
@@ -759,6 +762,8 @@ const ReviewApp: React.FC = () => {
               <AutomationsDropdown
                 context="review"
                 onSend={handleAutomationSend}
+                activeHooks={activeHooks}
+                onToggleHook={id => setActiveHooks(prev => prev.includes(id) ? prev.filter(h => h !== id) : [...prev, id])}
                 disabled={isSendingFeedback || isApproving || !!submitted}
               />
             )}

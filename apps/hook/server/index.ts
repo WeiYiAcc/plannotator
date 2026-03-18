@@ -44,6 +44,7 @@ import {
   handleAnnotateServerReady,
 } from "@plannotator/server/annotate";
 import { getGitContext, runGitDiff } from "@plannotator/server/git";
+import { parsePRUrl, checkGhAuth, fetchPR } from "@plannotator/server/pr";
 import { writeRemoteShareLink } from "@plannotator/server/share-url";
 import { resolveMarkdownFile } from "@plannotator/server/resolve-file";
 import { registerSession, unregisterSession, listSessions } from "@plannotator/server/sessions";
@@ -133,25 +134,56 @@ if (args[0] === "sessions") {
   // CODE REVIEW MODE
   // ============================================
 
-  // Get git context (branches, available diff options)
-  const gitContext = await getGitContext();
+  const urlArg = args[1];
+  const isPRMode = urlArg?.startsWith("http://") || urlArg?.startsWith("https://");
 
-  // Run git diff HEAD (uncommitted changes - default)
-  const { patch: rawPatch, label: gitRef, error: diffError } = await runGitDiff(
-    "uncommitted",
-    gitContext.defaultBranch
-  );
+  let rawPatch: string;
+  let gitRef: string;
+  let diffError: string | undefined;
+  let gitContext: Awaited<ReturnType<typeof getGitContext>> | undefined;
+  let prMetadata: Awaited<ReturnType<typeof fetchPR>>["metadata"] | undefined;
+
+  if (isPRMode) {
+    // --- PR Review Mode ---
+    const prRef = parsePRUrl(urlArg);
+    if (!prRef) {
+      console.error(`Invalid PR URL: ${urlArg}`);
+      console.error("Supported formats: https://github.com/owner/repo/pull/123");
+      process.exit(1);
+    }
+
+    try {
+      await checkGhAuth();
+    } catch (err) {
+      console.error(err instanceof Error ? err.message : "GitHub CLI auth check failed");
+      process.exit(1);
+    }
+
+    console.error(`Fetching PR #${prRef.number} from ${prRef.owner}/${prRef.repo}...`);
+    const pr = await fetchPR(prRef);
+    rawPatch = pr.rawPatch;
+    gitRef = `PR #${prRef.number}`;
+    prMetadata = pr.metadata;
+  } else {
+    // --- Local Review Mode ---
+    gitContext = await getGitContext();
+    const diffResult = await runGitDiff("uncommitted", gitContext.defaultBranch);
+    rawPatch = diffResult.patch;
+    gitRef = diffResult.label;
+    diffError = diffResult.error;
+  }
 
   const reviewProject = (await detectProjectName()) ?? "_unknown";
 
-  // Start review server (even if empty - user can switch diff types)
+  // Start review server (even if empty - user can switch diff types in local mode)
   const server = await startReviewServer({
     rawPatch,
     gitRef,
     error: diffError,
     origin: "claude-code",
-    diffType: "uncommitted",
+    diffType: isPRMode ? undefined : "uncommitted",
     gitContext,
+    prMetadata,
     sharingEnabled,
     shareBaseUrl,
     htmlContent: reviewHtmlContent,
@@ -171,7 +203,7 @@ if (args[0] === "sessions") {
     mode: "review",
     project: reviewProject,
     startedAt: new Date().toISOString(),
-    label: `review-${reviewProject}`,
+    label: isPRMode ? `pr-review-${prMetadata!.owner}/${prMetadata!.repo}#${prMetadata!.number}` : `review-${reviewProject}`,
   });
 
   // Wait for user feedback

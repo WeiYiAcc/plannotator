@@ -32,6 +32,7 @@ import {
   handleAnnotateServerReady,
 } from "@plannotator/server/annotate";
 import { getGitContext, runGitDiffWithContext } from "@plannotator/server/git";
+import { parsePRUrl, checkGhAuth, fetchPR } from "@plannotator/server/pr";
 import { writeRemoteShareLink } from "@plannotator/server/share-url";
 import { resolveMarkdownFile } from "@plannotator/server/resolve-file";
 import { planDenyFeedback } from "@plannotator/shared/feedback-templates";
@@ -274,25 +275,61 @@ Do NOT proceed with implementation until your plan is approved.
       const isReviewCommand = commandName === "plannotator-review";
 
       if (isCommandEvent && isReviewCommand) {
-        ctx.client.app.log({
-          level: "info",
-          message: "Opening code review UI...",
-        });
+        // @ts-ignore - Event properties contain arguments
+        const urlArg: string = event.properties?.arguments || "";
+        const isPRMode = urlArg?.startsWith("http://") || urlArg?.startsWith("https://");
 
-        const cwd = ctx.directory;
-        const gitContext = await getGitContext(cwd);
-        const { patch: rawPatch, label: gitRef, error: diffError } = await runGitDiffWithContext(
-          "uncommitted",
-          gitContext
-        );
+        let rawPatch: string;
+        let gitRef: string;
+        let diffError: string | undefined;
+        let gitContext: Awaited<ReturnType<typeof getGitContext>> | undefined;
+        let prMetadata: Awaited<ReturnType<typeof fetchPR>>["metadata"] | undefined;
+
+        if (isPRMode) {
+          ctx.client.app.log({
+            level: "info",
+            message: "Fetching PR for review...",
+          });
+
+          const prRef = parsePRUrl(urlArg);
+          if (!prRef) {
+            ctx.client.app.log({ level: "error", message: `Invalid PR URL: ${urlArg}` });
+            return;
+          }
+
+          try {
+            await checkGhAuth();
+          } catch (err) {
+            ctx.client.app.log({ level: "error", message: err instanceof Error ? err.message : "GitHub CLI auth check failed" });
+            return;
+          }
+
+          const pr = await fetchPR(prRef);
+          rawPatch = pr.rawPatch;
+          gitRef = `PR #${prRef.number}`;
+          prMetadata = pr.metadata;
+        } else {
+          ctx.client.app.log({
+            level: "info",
+            message: "Opening code review UI...",
+          });
+
+          const cwd = ctx.directory;
+          gitContext = await getGitContext(cwd);
+          const diffResult = await runGitDiffWithContext("uncommitted", gitContext);
+          rawPatch = diffResult.patch;
+          gitRef = diffResult.label;
+          diffError = diffResult.error;
+        }
 
         const server = await startReviewServer({
           rawPatch,
           gitRef,
           error: diffError,
           origin: "opencode",
-          diffType: "uncommitted",
+          diffType: isPRMode ? undefined : "uncommitted",
           gitContext,
+          prMetadata,
           sharingEnabled: await getSharingEnabled(),
           shareBaseUrl: getShareBaseUrl(),
           htmlContent: reviewHtmlContent,

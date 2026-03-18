@@ -54,7 +54,7 @@ import {
 import { useAgents } from '../hooks/useAgents';
 import { KeyboardShortcuts } from './KeyboardShortcuts';
 import { type QuickLabel, getQuickLabels, saveQuickLabels, resetQuickLabels, DEFAULT_QUICK_LABELS, getLabelColors, LABEL_COLOR_MAP } from '../utils/quickLabels';
-import { type Automation, type AutomationContext, getAutomations, saveAutomations } from '../utils/automations';
+import { type Automation, type AutomationContext, fetchAutomations, saveAutomation, type AutomationsResponse } from '../utils/automations';
 import { hasNewSettings, markNewSettingsSeen } from '../utils/newSettingsHint';
 import { ThemeTab } from './ThemeTab';
 import { AutomationsSettings } from './AutomationsSettings';
@@ -99,6 +99,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
   const [editingTipValue, setEditingTipValue] = useState('');
   const [showNewHints, setShowNewHints] = useState(() => hasNewSettings());
   const [automationsState, setAutomationsState] = useState<Automation[]>([]);
+  const [automationsLibrary, setAutomationsLibrary] = useState<Automation[]>([]);
 
   // Fetch available agents for OpenCode
   const { agents: availableAgents, validateAgent, getAgentWarning } = useAgents(origin ?? null);
@@ -145,7 +146,10 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
       setAutoCloseDelayState(getAutoCloseDelay());
       setDefaultNotesApp(getDefaultNotesApp());
       setQuickLabelsState(getQuickLabels());
-      setAutomationsState(getAutomations(mode));
+      fetchAutomations(mode).then(res => {
+        setAutomationsState(res.automations);
+        setAutomationsLibrary(res.library);
+      });
 
       // Validate agent setting when dialog opens
       if (origin === 'opencode') {
@@ -1041,9 +1045,18 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
                   <AutomationsSettings
                     context={mode}
                     automations={automationsState}
+                    library={automationsLibrary}
                     onChange={(updated) => {
                       setAutomationsState(updated);
-                      saveAutomations(mode, updated);
+                    }}
+                    onSave={(automation) => {
+                      saveAutomation(mode, automation);
+                    }}
+                    onRefresh={() => {
+                      fetchAutomations(mode).then(res => {
+                        setAutomationsState(res.automations);
+                        setAutomationsLibrary(res.library);
+                      });
                     }}
                   />
                 )}

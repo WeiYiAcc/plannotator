@@ -35,9 +35,10 @@ import {
 } from "./storage";
 import { getRepoInfo } from "./repo";
 import { detectProjectName } from "./project";
-import { handleImage, handleUpload, handleAgents, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, type OpencodeClient } from "./shared-handlers";
+import { handleImage, handleUpload, handleAgents, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleAutomationsRoute, type OpencodeClient } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
 import { handleDoc, handleObsidianVaults, handleObsidianFiles, handleObsidianDoc } from "./reference-handlers";
+import { templateToEntry, type AutomationEntry } from "./automations";
 import { createEditorAnnotationHandler } from "./editor-annotations";
 
 // Re-export utilities
@@ -69,6 +70,8 @@ export interface ServerOptions {
   onReady?: (url: string, isRemote: boolean, port: number) => void;
   /** OpenCode client for querying available agents (OpenCode only) */
   opencodeClient?: OpencodeClient;
+  /** Bundled automation library (from generated.ts) */
+  bundledAutomations?: AutomationEntry[];
 }
 
 export interface ServerResult {
@@ -273,6 +276,10 @@ export async function startPlannotatorServer(
           // API: Editor annotations (VS Code extension)
           const editorResponse = await editorAnnotations.handle(req, url);
           if (editorResponse) return editorResponse;
+
+          // API: Automations CRUD
+          const automationsResponse = await handleAutomationsRoute(req, url, "plan", options.bundledAutomations || []);
+          if (automationsResponse) return automationsResponse;
 
           // API: Save to notes (decoupled from approve/deny)
           if (url.pathname === "/api/save-notes" && req.method === "POST") {

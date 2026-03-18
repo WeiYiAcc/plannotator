@@ -12,9 +12,10 @@
 import { isRemoteSession, getServerPort } from "./remote";
 import { type DiffType, type GitContext, runGitDiff, getFileContentsForDiff, gitAddFile, gitResetFile, parseWorktreeDiffType, validateFilePath } from "./git";
 import { getRepoInfo } from "./repo";
-import { handleImage, handleUpload, handleAgents, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, type OpencodeClient } from "./shared-handlers";
+import { handleImage, handleUpload, handleAgents, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleAutomationsRoute, type OpencodeClient } from "./shared-handlers";
 import { contentHash, deleteDraft } from "./draft";
 import { createEditorAnnotationHandler } from "./editor-annotations";
+import { type AutomationEntry } from "./automations";
 
 // Re-export utilities
 export { isRemoteSession, getServerPort } from "./remote";
@@ -47,6 +48,8 @@ export interface ReviewServerOptions {
   onReady?: (url: string, isRemote: boolean, port: number) => void;
   /** OpenCode client for querying available agents (OpenCode only) */
   opencodeClient?: OpencodeClient;
+  /** Bundled automation library (from generated.ts) */
+  bundledAutomations?: AutomationEntry[];
 }
 
 export interface ReviewServerResult {
@@ -257,6 +260,10 @@ export async function startReviewServer(
           // API: Editor annotations (VS Code extension)
           const editorResponse = await editorAnnotations.handle(req, url);
           if (editorResponse) return editorResponse;
+
+          // API: Automations CRUD
+          const automationsResponse = await handleAutomationsRoute(req, url, "review", options.bundledAutomations || []);
+          if (automationsResponse) return automationsResponse;
 
           // API: Submit review feedback
           if (url.pathname === "/api/feedback" && req.method === "POST") {

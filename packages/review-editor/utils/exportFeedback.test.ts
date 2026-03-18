@@ -35,23 +35,52 @@ describe("exportReviewFeedback", () => {
     expect(result).toBe("# Code Review\n\nNo feedback provided.");
   });
 
-  it("uses local header when no prMetadata", () => {
+  it("local mode: uses generic header, no PR content", () => {
     const result = exportReviewFeedback([ann()]);
+    expect(result).toStartWith("# Code Review Feedback\n\n");
+    // Must not leak any PR-specific content
+    expect(result).not.toContain("PR Review");
+    expect(result).not.toContain("github.com");
+    expect(result).not.toContain("Branch:");
+    expect(result).not.toContain("acme");
+  });
+
+  it("local mode with null prMetadata: same as no prMetadata", () => {
+    const result = exportReviewFeedback([ann()], null);
     expect(result).toStartWith("# Code Review Feedback\n\n");
     expect(result).not.toContain("PR Review");
   });
 
-  it("uses PR header when prMetadata provided", () => {
+  it("local mode with undefined prMetadata: same as no prMetadata", () => {
+    const result = exportReviewFeedback([ann()], undefined);
+    expect(result).toStartWith("# Code Review Feedback\n\n");
+    expect(result).not.toContain("PR Review");
+  });
+
+  it("PR mode: includes all PR context fields", () => {
     const result = exportReviewFeedback([ann()], prMeta);
     expect(result).toStartWith("# PR Review: acme/widgets#42\n\n");
     expect(result).toContain("**fix: broken widget**");
     expect(result).toContain("Branch: `fix/widget` → `main`");
     expect(result).toContain("https://github.com/acme/widgets/pull/42");
+    // Must not contain the generic local header
+    expect(result).not.toContain("# Code Review Feedback");
   });
 
-  it("still returns empty message with prMetadata but no annotations", () => {
-    const result = exportReviewFeedback([], prMeta);
-    expect(result).toBe("# Code Review\n\nNo feedback provided.");
+  it("PR mode: annotations still render after PR header", () => {
+    const result = exportReviewFeedback([ann({ text: "needs fix" })], prMeta);
+    // PR header comes first, then file/line annotations
+    const headerIdx = result.indexOf("PR Review:");
+    const annotationIdx = result.indexOf("needs fix");
+    expect(headerIdx).toBeLessThan(annotationIdx);
+    expect(result).toContain("## src/index.ts");
+    expect(result).toContain("### Line 10 (new)");
+  });
+
+  it("no annotations: returns generic empty regardless of prMetadata", () => {
+    expect(exportReviewFeedback([], prMeta)).toBe("# Code Review\n\nNo feedback provided.");
+    expect(exportReviewFeedback([], null)).toBe("# Code Review\n\nNo feedback provided.");
+    expect(exportReviewFeedback([])).toBe("# Code Review\n\nNo feedback provided.");
   });
 
   it("groups annotations by file", () => {

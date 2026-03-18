@@ -202,6 +202,7 @@ export async function handleAnnotateLastCommand(
     markdown: lastText,
     filePath: "last-message",
     origin: "opencode",
+    mode: "annotate-last",
     sharingEnabled: await getSharingEnabled(),
     shareBaseUrl: getShareBaseUrl(),
     htmlContent,

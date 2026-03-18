@@ -321,6 +321,7 @@ if (args[0] === "sessions") {
     markdown: lastMessage.text,
     filePath: "last-message",
     origin: "claude-code",
+    mode: "annotate-last",
     sharingEnabled,
     shareBaseUrl,
     htmlContent: planHtmlContent,

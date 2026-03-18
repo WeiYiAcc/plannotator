@@ -392,6 +392,7 @@ export default function plannotator(pi: ExtensionAPI): void {
           markdown: lastText,
           filePath: "last-message",
           origin: "pi",
+          mode: "annotate-last",
           htmlContent: planHtmlContent,
         });
       } catch (err) {

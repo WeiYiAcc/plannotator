@@ -209,19 +209,8 @@ export const PlannotatorPlugin: Plugin = async (ctx) => {
     // synthetic user message parts. The plugin's system prompt injection is
     // the full replacement — this removes the conflicting original.
     "experimental.chat.messages.transform": async (input, output) => {
-      const log = (msg: string) => {
-        try { require("fs").appendFileSync("/tmp/plannotator-debug.log", `[${new Date().toISOString()}] [msg-transform] ${msg}\n`); } catch {}
-      };
-      log(`fired, ${output.messages.length} messages`);
       for (const message of output.messages) {
         if (message.info.role !== "user") continue;
-        const before = message.parts.length;
-        const stripped = message.parts.filter(
-          (part: any) => part.type === "text" && part.text?.includes("STRICTLY FORBIDDEN")
-        );
-        if (stripped.length > 0) {
-          log(`STRIPPING ${stripped.length} parts containing STRICTLY FORBIDDEN (preview: ${stripped[0]?.text?.slice(0, 80)}...)`);
-        }
         message.parts = message.parts.filter(
           (part: any) => !(part.type === "text" && part.text?.includes("STRICTLY FORBIDDEN"))
         );
@@ -242,15 +231,9 @@ export const PlannotatorPlugin: Plugin = async (ctx) => {
 
     // Inject planning instructions into system prompt
     "experimental.chat.system.transform": async (input, output) => {
-      const log = (msg: string) => {
-        try { require("fs").appendFileSync("/tmp/plannotator-debug.log", `[${new Date().toISOString()}] ${msg}\n`); } catch {}
-      };
-      log("system.transform fired");
-
       // Skip for title generation requests
       const systemText = output.system.join("\n");
       if (systemText.toLowerCase().includes("title generator") || systemText.toLowerCase().includes("generate a title")) {
-        log("SKIP: title generation");
         return;
       }
 
@@ -262,7 +245,6 @@ export const PlannotatorPlugin: Plugin = async (ctx) => {
           path: { id: input.sessionID }
         });
         const messages = messagesResponse.data;
-        log(`messages count: ${messages?.length ?? "null"}`);
 
         // Find last user message (reverse iteration)
         if (messages) {
@@ -271,23 +253,16 @@ export const PlannotatorPlugin: Plugin = async (ctx) => {
             if (msg.info.role === "user") {
               // @ts-ignore - UserMessage has agent field
               lastUserAgent = msg.info.agent;
-              log(`lastUserAgent: "${lastUserAgent}"`);
               break;
             }
           }
         }
 
         // Skip if agent detection fails (safer)
-        if (!lastUserAgent) {
-          log("SKIP: no lastUserAgent found");
-          return;
-        }
+        if (!lastUserAgent) return;
 
         // Hardcoded exclusion: build agent
-        if (lastUserAgent === "build") {
-          log("SKIP: build agent");
-          return;
-        }
+        if (lastUserAgent === "build") return;
 
         // Agents list is static — cache after first fetch
         if (!cachedAgents) {
@@ -295,26 +270,17 @@ export const PlannotatorPlugin: Plugin = async (ctx) => {
             query: { directory: ctx.directory }
           });
           cachedAgents = agentsResponse.data ?? [];
-          log(`agents: ${cachedAgents.map((a: any) => `${a.name}(${a.mode})`).join(", ")}`);
         }
         const agent = cachedAgents.find((a: { name: string }) => a.name === lastUserAgent);
-        log(`matched agent: ${agent ? `${agent.name}(${(agent as any).mode})` : "none"}`);
 
         // Skip if agent is a sub-agent
         // @ts-ignore - Agent has mode field
-        if (agent?.mode === "subagent") {
-          log("SKIP: subagent");
-          return;
-        }
+        if (agent?.mode === "subagent") return;
 
-      } catch (err) {
+      } catch {
         // Skip injection on any error (safer)
-        log(`CATCH: ${err}`);
         return;
       }
-
-      // Plan agent: inject full iterative planning prompt
-      log(`checking plan agent: lastUserAgent="${lastUserAgent}" === "plan" ? ${lastUserAgent === "plan"}`);
       if (lastUserAgent === "plan") {
         const planDir = getPlanDirectory();
         output.system = stripConflictingPlanModeRules(output.system);
@@ -372,10 +338,6 @@ Now I'll write the plan file.
         output.system.push(prompt);
         // Append a short reinforcement reminder at the very end of system prompt
         output.system.push(`<system-reminder>You are in PLAN MODE. The user has asked you to plan, not execute. Explore the codebase, ask clarifying questions using the question tool, and finalize your plan in a markdown file written to ${planDir}. Then call submit_plan with the absolute path. Do not use the todowrite tool. Do not create todos. The plan file is your only output.</system-reminder>`);
-        log(`INJECTED planning prompt, system entries: ${output.system.length}, prompt length: ${prompt.length}, planDir: ${planDir}`);
-        log(`=== FULL SYSTEM PROMPT START ===`);
-        output.system.forEach((s: string, i: number) => log(`--- system[${i}] (${s.length} chars) ---\n${s}`));
-        log(`=== FULL SYSTEM PROMPT END ===`);
         return;
       }
 

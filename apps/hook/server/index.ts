@@ -51,6 +51,7 @@ import { openBrowser } from "@plannotator/server/browser";
 import { detectProjectName } from "@plannotator/server/project";
 import { planDenyFeedback } from "@plannotator/shared/feedback-templates";
 import { findSessionLogsForCwd, getLastRenderedMessage } from "./session-log";
+import { findCodexRolloutByThreadId, getLastCodexMessage } from "./codex-session";
 import path from "path";
 
 // Embed the built HTML at compile time
@@ -278,32 +279,48 @@ if (args[0] === "sessions") {
   console.log(result.feedback || "No feedback provided.");
   process.exit(0);
 
-} else if (args[0] === "annotate-last") {
+} else if (args[0] === "annotate-last" || args[0] === "last") {
   // ============================================
   // ANNOTATE LAST MESSAGE MODE
   // ============================================
 
   const projectRoot = process.env.PLANNOTATOR_CWD || process.cwd();
-  const candidates = findSessionLogsForCwd(projectRoot);
+  const codexThreadId = process.env.CODEX_THREAD_ID;
+  const isCodex = !!codexThreadId;
 
-  if (candidates.length === 0) {
-    console.error("No session logs found for this project.");
-    process.exit(1);
-  }
+  let lastMessage: { messageId: string; text: string; lineNumbers: number[] } | null = null;
 
-  if (process.env.PLANNOTATOR_DEBUG) {
-    console.error(`[DEBUG] Project root: ${projectRoot}`);
-    console.error(`[DEBUG] Candidates: ${candidates.join(", ")}`);
-  }
-
-  // Try each candidate (most recent first) until we find a rendered message
-  let lastMessage: ReturnType<typeof getLastRenderedMessage> = null;
-  for (const logPath of candidates) {
+  if (codexThreadId) {
+    // Codex path: find rollout by thread ID
     if (process.env.PLANNOTATOR_DEBUG) {
-      console.error(`[DEBUG] Trying: ${logPath}`);
+      console.error(`[DEBUG] Codex detected, thread ID: ${codexThreadId}`);
     }
-    lastMessage = getLastRenderedMessage(logPath);
-    if (lastMessage) break;
+    const rolloutPath = findCodexRolloutByThreadId(codexThreadId);
+    if (rolloutPath) {
+      if (process.env.PLANNOTATOR_DEBUG) {
+        console.error(`[DEBUG] Rollout: ${rolloutPath}`);
+      }
+      const msg = getLastCodexMessage(rolloutPath);
+      if (msg) {
+        lastMessage = { messageId: codexThreadId, text: msg.text, lineNumbers: [] };
+      }
+    }
+  } else {
+    // Claude Code path: find session logs by CWD
+    const candidates = findSessionLogsForCwd(projectRoot);
+
+    if (process.env.PLANNOTATOR_DEBUG) {
+      console.error(`[DEBUG] Project root: ${projectRoot}`);
+      console.error(`[DEBUG] Candidates: ${candidates.join(", ")}`);
+    }
+
+    for (const logPath of candidates) {
+      if (process.env.PLANNOTATOR_DEBUG) {
+        console.error(`[DEBUG] Trying: ${logPath}`);
+      }
+      lastMessage = getLastRenderedMessage(logPath);
+      if (lastMessage) break;
+    }
   }
 
   if (!lastMessage) {
@@ -320,7 +337,7 @@ if (args[0] === "sessions") {
   const server = await startAnnotateServer({
     markdown: lastMessage.text,
     filePath: "last-message",
-    origin: "claude-code",
+    origin: isCodex ? "codex" as any : "claude-code",
     mode: "annotate-last",
     sharingEnabled,
     shareBaseUrl,

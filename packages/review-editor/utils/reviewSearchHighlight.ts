@@ -68,6 +68,10 @@ function decorateSearchMatch(mark: HTMLElement, isActive: boolean) {
   mark.style.boxShadow = isActive ? ACTIVE_MATCH_RING : PASSIVE_MATCH_RING;
 }
 
+function lineKey(match: ReviewSearchMatch): string {
+  return `${match.filePath}:${match.side}:${match.lineNumber}`;
+}
+
 export function applySearchHighlights(
   root: ParentNode,
   query: string,
@@ -75,12 +79,23 @@ export function applySearchHighlights(
   activeSearchMatchId: string | null,
 ) {
   clearSearchHighlights(root);
-  if (!query.trim() || searchMatches.length === 0) return;
+  const trimmed = query.trim();
+  if (!trimmed || searchMatches.length === 0) return;
 
-  const regex = new RegExp(escapeRegExp(query), 'gi');
+  const regex = new RegExp(escapeRegExp(trimmed), 'gi');
 
+  // Group matches by line so we process each line element once,
+  // assigning each DOM occurrence to the correct match object.
+  const lineGroups = new Map<string, ReviewSearchMatch[]>();
   searchMatches.forEach((match) => {
-    const lineEl = root.querySelector(getLineSelector(match));
+    const key = lineKey(match);
+    const group = lineGroups.get(key);
+    if (group) group.push(match);
+    else lineGroups.set(key, [match]);
+  });
+
+  lineGroups.forEach((matches) => {
+    const lineEl = root.querySelector(getLineSelector(matches[0]));
     if (!lineEl) return;
 
     const textWalker = document.createTreeWalker(lineEl, NodeFilter.SHOW_TEXT, {
@@ -92,7 +107,7 @@ export function applySearchHighlights(
     });
 
     let textNode = textWalker.nextNode() as Text | null;
-    let activeMarkApplied = false;
+    let matchIndex = 0;
 
     while (textNode) {
       const value = textNode.nodeValue || '';
@@ -109,18 +124,19 @@ export function applySearchHighlights(
 
       matchesInNode.forEach((nodeMatch) => {
         const index = nodeMatch.index ?? 0;
+        const len = nodeMatch[0].length;
         if (index > cursor) {
           fragment.appendChild(document.createTextNode(value.slice(cursor, index)));
         }
 
+        const matchObj = matches[matchIndex] ?? matches[matches.length - 1];
         const mark = document.createElement('mark');
-        mark.dataset.reviewSearchMatch = match.id;
-        const isActive = !activeMarkApplied && activeSearchMatchId === match.id;
-        decorateSearchMatch(mark, isActive);
-        mark.textContent = value.slice(index, index + query.length);
+        mark.dataset.reviewSearchMatch = matchObj.id;
+        decorateSearchMatch(mark, activeSearchMatchId === matchObj.id);
+        mark.textContent = value.slice(index, index + len);
         fragment.appendChild(mark);
-        activeMarkApplied = activeMarkApplied || isActive;
-        cursor = index + query.length;
+        matchIndex += 1;
+        cursor = index + len;
       });
 
       if (cursor < value.length) {

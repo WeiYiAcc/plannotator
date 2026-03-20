@@ -120,12 +120,16 @@
   background: var(--card);
   color: var(--muted-foreground);
   cursor: pointer;
-  opacity: 0;
   transition: opacity 0.15s;
 }
 
-.prose pre:hover .copy-btn {
-  opacity: 1;
+@media (hover: hover) and (pointer: fine) {
+  .prose pre .copy-btn {
+    opacity: 0;
+  }
+  .prose pre:hover .copy-btn {
+    opacity: 1;
+  }
 }
 
 .prose pre .copy-btn:hover {
@@ -325,13 +329,17 @@
   background: transparent;
   color: var(--muted-foreground);
   cursor: pointer;
-  opacity: 0;
   transition: opacity 0.15s, color 0.15s;
   flex-shrink: 0;
 }
 
-.hero-detail-step:hover .step-copy-btn {
-  opacity: 1;
+@media (hover: hover) and (pointer: fine) {
+  .hero-detail-step .step-copy-btn {
+    opacity: 0;
+  }
+  .hero-detail-step:hover .step-copy-btn {
+    opacity: 1;
+  }
 }
 
 .hero-detail-step .step-copy-btn:hover {
@@ -346,19 +354,6 @@
 /* Pi icon — white by default, invert in light mode */
 .light .icon-pi {
   filter: invert(1);
-}
-
-/* Agent icons — ensure visibility on both themes */
-.agent-icon-pi {
-  background: var(--foreground);
-  border-radius: 3px;
-  padding: 1px;
-}
-.agent-icon-pi img {
-  filter: invert(0);
-}
-.light .agent-icon-pi {
-  background: var(--foreground);
 }
 
 /* Hero agent selector buttons — glassy, interactive */
@@ -414,17 +409,6 @@
 
 /* ── Section scroll reveal ── */
 
-.reveal {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
-}
-
-.reveal.revealed {
-  opacity: 1;
-  transform: translateY(0);
-}
-
 .landing-reveal {
   opacity: 0;
   transform: translateY(16px);
@@ -439,8 +423,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-up { animation: none; opacity: 1; transform: none; }
-  .reveal { transition: opacity 0.3s ease-out; transform: none; }
-  .reveal.revealed { opacity: 1; }
   .landing-reveal { opacity: 1; transform: none; transition: none; }
 }
 
@@ -664,83 +646,6 @@
   50% { opacity: 0; }
 }
 
-/* ── Agent path selector (Get Started section) ── */
-
-.agent-selector {
-  display: flex;
-  gap: 0;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  width: fit-content;
-}
-
-.agent-tab {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 0.875rem;
-  font-size: 0.8125rem;
-  color: var(--muted-foreground);
-  background: transparent;
-  border: none;
-  border-right: 1px solid var(--border);
-  cursor: pointer;
-  transition: color 0.15s cubic-bezier(0.23, 1, 0.32, 1),
-              background-color 0.15s cubic-bezier(0.23, 1, 0.32, 1);
-}
-
-.agent-tab:last-child {
-  border-right: none;
-}
-
-.agent-tab:active {
-  transform: scale(0.98);
-}
-
-.agent-tab.active {
-  color: var(--foreground);
-  background: var(--muted);
-  font-weight: 500;
-}
-
-@media (hover: hover) and (pointer: fine) {
-  .agent-tab:not(.active):hover {
-    color: var(--foreground);
-    background: oklch(from var(--muted) l c h / 0.5);
-  }
-}
-
-.agent-panel {
-  display: none;
-}
-
-.agent-panel.active {
-  display: block;
-}
-
-@media (max-width: 640px) {
-  .agent-selector {
-    flex-wrap: wrap;
-    width: 100%;
-  }
-
-  .agent-tab {
-    flex: 1 0 45%;
-    justify-content: center;
-    border-bottom: 1px solid var(--border);
-  }
-
-  .agent-tab:nth-child(2) {
-    border-right: none;
-  }
-
-  .agent-tab:nth-child(3),
-  .agent-tab:nth-child(4) {
-    border-bottom: none;
-  }
-}
-
 /* ── Install command block (for agent panels + CTA) ── */
 
 .install-block {
@@ -769,13 +674,17 @@
   background: var(--card);
   color: var(--muted-foreground);
   cursor: pointer;
-  opacity: 0;
   transition: opacity 0.15s;
   flex-shrink: 0;
 }
 
-.install-block:hover .install-copy-btn {
-  opacity: 1;
+@media (hover: hover) and (pointer: fine) {
+  .install-copy-btn {
+    opacity: 0;
+  }
+  .install-block:hover .install-copy-btn {
+    opacity: 1;
+  }
 }
 
 .install-copy-btn:hover {
@@ -809,54 +718,6 @@
   width: 0.5rem;
   height: 0.5rem;
   border-radius: 50%;
-}
-
-/* ── Code review mock diff lines ── */
-
-.diff-line {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  line-height: 1.7;
-  padding: 0 0.75rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.diff-add {
-  background: oklch(from var(--success) l c h / 0.1);
-  color: var(--success);
-}
-
-.diff-remove {
-  background: oklch(from var(--destructive) l c h / 0.1);
-  color: var(--destructive);
-}
-
-.diff-context {
-  color: var(--muted-foreground);
-}
-
-.diff-annotation {
-  background: oklch(from var(--accent) l c h / 0.12);
-  border-left: 3px solid var(--accent);
-}
-
-.diff-inline-annotation {
-  padding: 0.375rem 0.75rem;
-  background: oklch(from var(--accent) l c h / 0.06);
-  border-left: 3px solid var(--accent);
-  font-size: 0.75rem;
-}
-
-.diff-inline-annotation-label {
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.diff-inline-annotation-text {
-  color: var(--muted-foreground);
-  margin-left: 0.5rem;
 }
 
 /* ── Video demo button ── */

@@ -42,7 +42,7 @@ import '../styles/global.css';
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400;1,8..60,600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   </head>
   <body class="min-h-screen antialiased">
     <slot />
@@ -85,43 +85,6 @@ import '../styles/global.css';
         });
         pre.appendChild(btn);
       });
-    </script>
-    <script is:inline>
-      // Agent path selector (landing page)
-      (function() {
-        var videoMap = {
-          'claude-code': 'https://www.youtube.com/watch?v=a_AT7cEN_9I',
-          'opencode': 'https://youtu.be/_N7uo0EFI-U',
-          'pi': 'https://youtu.be/XqFun9XCXPw',
-          'codex': ''
-        };
-
-        function setAgent(agent) {
-          document.querySelectorAll('.agent-tab').forEach(function(tab) {
-            var isActive = tab.dataset.agent === agent;
-            tab.classList.toggle('active', isActive);
-            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
-          });
-          document.querySelectorAll('.agent-panel').forEach(function(panel) {
-            panel.classList.toggle('active', panel.dataset.forAgent === agent);
-          });
-          var ctaLink = document.getElementById('cta-video-link');
-          if (ctaLink) {
-            var ctaUrl = videoMap[agent];
-            if (ctaUrl) { ctaLink.href = ctaUrl; ctaLink.style.display = ''; }
-            else { ctaLink.style.display = 'none'; }
-          }
-          try { localStorage.setItem('plannotator-agent', agent); } catch(e) {}
-        }
-
-        document.querySelectorAll('.agent-tab').forEach(function(tab) {
-          tab.addEventListener('click', function() { setAgent(tab.dataset.agent); });
-        });
-
-        var saved = '';
-        try { saved = localStorage.getItem('plannotator-agent'); } catch(e) {}
-        setAgent(saved && videoMap.hasOwnProperty(saved) ? saved : 'claude-code');
-      })();
     </script>
     <script is:inline>
       // Install block copy buttons (landing page)
@@ -485,7 +448,7 @@ import '../styles/global.css';
             }
           });
         }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
-        document.querySelectorAll('.reveal, .landing-reveal').forEach(function(el) {
+        document.querySelectorAll('.landing-reveal').forEach(function(el) {
           observer.observe(el);
         });
       }

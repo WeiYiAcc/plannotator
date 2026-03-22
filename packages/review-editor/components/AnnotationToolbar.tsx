@@ -24,7 +24,7 @@ interface AnnotationToolbarProps {
   aiAvailable?: boolean;
   onAskAI?: (question: string) => void;
   isAILoading?: boolean;
-  onViewAIResponse?: () => void;
+  onViewAIResponse?: (questionId?: string) => void;
   /** AI messages that overlap the current line selection */
   aiHistoryMessages?: AIMessage[];
 }

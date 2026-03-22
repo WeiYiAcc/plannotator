@@ -48,7 +48,7 @@ interface DiffViewerProps {
   aiAvailable?: boolean;
   onAskAI?: (question: string) => void;
   isAILoading?: boolean;
-  onViewAIResponse?: () => void;
+  onViewAIResponse?: (questionId?: string) => void;
   aiMessages?: AIMessage[];
   onClickAIMarker?: (questionId: string) => void;
   /** AI messages overlapping the current pending selection */

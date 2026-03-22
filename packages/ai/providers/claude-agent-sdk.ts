@@ -30,8 +30,7 @@ const PROVIDER_NAME = "claude-agent-sdk";
 /** Default read-only tools for inline chat. */
 const DEFAULT_ALLOWED_TOOLS = ["Read", "Glob", "Grep", "WebSearch"];
 
-/** Sensible defaults for inline chat — keep it fast and cheap. */
-const DEFAULT_MAX_TURNS = 3;
+const DEFAULT_MAX_TURNS = 99;
 const DEFAULT_MODEL = "claude-sonnet-4-6";
 
 // ---------------------------------------------------------------------------

@@ -218,9 +218,13 @@ const ReviewApp: React.FC = () => {
     });
   }, [pendingSelection, files, activeFileIndex, aiChat]);
 
-  const handleViewAIResponse = useCallback(() => {
+  const handleViewAIResponse = useCallback((questionId?: string) => {
     setReviewPanelTabOverride('ai');
     setIsPanelOpen(true);
+    if (questionId) {
+      setScrollToQuestionId(questionId);
+      setTimeout(() => setScrollToQuestionId(null), 500);
+    }
   }, []);
 
   const handleScrollToAILines = useCallback((filePath: string, lineStart: number, lineEnd: number, side: 'old' | 'new') => {

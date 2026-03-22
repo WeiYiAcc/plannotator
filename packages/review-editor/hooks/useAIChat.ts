@@ -165,24 +165,27 @@ export function useAIChat({ patch }: UseAIChatOptions) {
           try {
             const msg = JSON.parse(data);
 
+            // DEBUG: log every SSE message to browser console
+            console.log('[AI SSE]', msg.type, msg.type === 'text_delta' ? msg.delta?.slice(0, 50) : msg.type === 'text' ? `(${msg.text?.length} chars)` : msg.type === 'result' ? `success=${msg.success} result=${msg.result?.slice(0, 80)}` : msg.type === 'tool_use' ? `${msg.toolName}` : msg.type === 'tool_result' ? `(${msg.result?.slice(0, 50)})` : JSON.stringify(msg).slice(0, 100));
+
             if (msg.type === 'text_delta') {
-              setMessages(prev => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last && last.question.id === questionId) {
-                  last.response = { ...last.response, text: last.response.text + msg.delta };
-                }
-                return updated;
-              });
+              setMessages(prev =>
+                prev.map(m =>
+                  m.question.id === questionId
+                    ? { ...m, response: { ...m.response, text: m.response.text + msg.delta } }
+                    : m
+                )
+              );
             } else if (msg.type === 'text') {
-              setMessages(prev => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last && last.question.id === questionId) {
-                  last.response = { ...last.response, text: last.response.text + msg.text };
-                }
-                return updated;
-              });
+              // Complete text from assistant message — only use if we have no
+              // streaming content yet (deltas already accumulated the same text).
+              setMessages(prev =>
+                prev.map(m =>
+                  m.question.id === questionId && !m.response.text
+                    ? { ...m, response: { ...m.response, text: msg.text } }
+                    : m
+                )
+              );
             } else if (msg.type === 'permission_request') {
               setPermissionRequests(prev => [...prev, {
                 requestId: msg.requestId,
@@ -194,24 +197,29 @@ export function useAIChat({ patch }: UseAIChatOptions) {
                 toolUseId: msg.toolUseId,
               }]);
             } else if (msg.type === 'error') {
-              setMessages(prev => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last && last.question.id === questionId) {
-                  last.response = { ...last.response, error: msg.error, isStreaming: false };
-                }
-                return updated;
-              });
+              setMessages(prev =>
+                prev.map(m =>
+                  m.question.id === questionId
+                    ? { ...m, response: { ...m.response, error: msg.error, isStreaming: false } }
+                    : m
+                )
+              );
               setError(msg.error);
             } else if (msg.type === 'result') {
-              setMessages(prev => {
-                const updated = [...prev];
-                const last = updated[updated.length - 1];
-                if (last && last.question.id === questionId) {
-                  last.response = { ...last.response, isStreaming: false };
-                }
-                return updated;
-              });
+              setMessages(prev =>
+                prev.map(m => {
+                  if (m.question.id !== questionId) return m;
+                  const resultText = msg.result ?? '';
+                  return {
+                    ...m,
+                    response: {
+                      ...m.response,
+                      text: m.response.text || resultText,
+                      isStreaming: false,
+                    },
+                  };
+                })
+              );
             }
           } catch {
             // Skip unparseable lines
@@ -220,27 +228,25 @@ export function useAIChat({ patch }: UseAIChatOptions) {
       }
 
       // Finalize if not already done
-      setMessages(prev => {
-        const updated = [...prev];
-        const last = updated[updated.length - 1];
-        if (last && last.question.id === questionId && last.response.isStreaming) {
-          last.response = { ...last.response, isStreaming: false };
-        }
-        return updated;
-      });
+      setMessages(prev =>
+        prev.map(m =>
+          m.question.id === questionId && m.response.isStreaming
+            ? { ...m, response: { ...m.response, isStreaming: false } }
+            : m
+        )
+      );
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') return;
 
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
-      setMessages(prev => {
-        const updated = [...prev];
-        const last = updated[updated.length - 1];
-        if (last && last.question.id === questionId) {
-          last.response = { ...last.response, error: message, isStreaming: false };
-        }
-        return updated;
-      });
+      setMessages(prev =>
+        prev.map(m =>
+          m.question.id === questionId
+            ? { ...m, response: { ...m.response, error: message, isStreaming: false } }
+            : m
+        )
+      );
     } finally {
       if (abortRef.current === controller) {
         setIsStreaming(false);

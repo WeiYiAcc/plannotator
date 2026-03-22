@@ -16,7 +16,7 @@ interface AskAIInputProps {
   initialText?: string;
   /** AI messages that overlap the current line selection */
   aiHistory: AIMessage[];
-  onViewResponse?: () => void;
+  onViewResponse?: (questionId: string) => void;
   /** Toggle back to comment mode */
   onSwitchToComment?: () => void;
 }
@@ -116,7 +116,7 @@ export const AskAIInput: React.FC<AskAIInputProps> = ({
           {aiHistory.map(({ question: q, response: r }) => (
             <button
               key={q.id}
-              onClick={onViewResponse}
+              onClick={() => onViewResponse?.(q.id)}
               className="w-full text-left p-1.5 rounded border border-border/50 hover:border-primary/30 hover:bg-primary/5 transition-colors"
             >
               <p className="text-[10px] text-muted-foreground truncate">{q.prompt}</p>

@@ -1,8 +1,14 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import type { AIMessage } from '../hooks/useAIChat';
-import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
+import { renderMarkdown } from '../utils/renderMarkdown';
 import { formatLineRange } from '../utils/formatLineRange';
+import { formatTimestamp } from '../utils/formatTimestamp';
 import { SparklesIcon } from './SparklesIcon';
+import { CountBadge } from './CountBadge';
+import { CopyButton } from './CopyButton';
+
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+const submitHint = isMac ? '⌘↵' : 'Ctrl+Enter';
 
 interface AITabProps {
   messages: AIMessage[];
@@ -56,7 +62,6 @@ export const AITab: React.FC<AITabProps> = ({
 
     const fileGroups: FileGroup[] = [];
     for (const [filePath, msgs] of grouped) {
-      // Sort: file-scoped first, then line-scoped by lineStart
       msgs.sort((a, b) => {
         const aScope = getQuestionScope(a.question);
         const bScope = getQuestionScope(b.question);
@@ -85,22 +90,18 @@ export const AITab: React.FC<AITabProps> = ({
   useEffect(() => {
     if (!scrollToQuestionId || !scrollRef.current) return;
 
-    // Find which file this question belongs to
     const msg = messages.find(m => m.question.id === scrollToQuestionId);
     const filePath = msg?.question.filePath;
 
     if (filePath) {
-      // Scroll the file group header into view
       const header = scrollRef.current.querySelector(`[data-file-group="${CSS.escape(filePath)}"]`);
       if (header) {
         header.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
-      // Flash-highlight the file group header
       setHighlightFilePath(filePath);
       setTimeout(() => setHighlightFilePath(null), 1200);
     }
 
-    // If expanded, also scroll the Q&A into view after the header scroll settles
     if (filePath && expandedFiles.has(filePath)) {
       setTimeout(() => {
         const el = scrollRef.current?.querySelector(`[data-question-id="${scrollToQuestionId}"]`);
@@ -109,7 +110,7 @@ export const AITab: React.FC<AITabProps> = ({
     }
   }, [scrollToQuestionId]);
 
-  // Auto-scroll: keep the latest message visible without hiding file group headers
+  // Auto-scroll on streaming
   useEffect(() => {
     if (!scrollRef.current) return;
     if (!isStreaming && messages.length === 0) return;
@@ -136,28 +137,19 @@ export const AITab: React.FC<AITabProps> = ({
     setGeneralInput('');
   };
 
+  // Empty state
   if (messages.length === 0 && !isCreatingSession) {
     return (
       <div className="flex flex-col h-full">
-        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground px-6 py-12 text-center">
-          <SparklesIcon className="w-8 h-8 mb-3 opacity-40" />
-          <p className="text-xs">Select lines and click <strong>Ask AI</strong>, or ask a general question below.</p>
-        </div>
-        {onAskGeneral && (
-          <div className="ai-general-input">
-            <textarea
-              value={generalInput}
-              onChange={(e) => setGeneralInput(e.target.value)}
-              placeholder="Ask about the overall changes..."
-              rows={2}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
-                  handleGeneralSubmit();
-                }
-              }}
-            />
+        <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground px-4 py-12 text-center">
+          <div className="w-10 h-10 rounded-full bg-muted/50 flex items-center justify-center mb-3">
+            <SparklesIcon className="w-5 h-5" />
           </div>
-        )}
+          <p className="text-xs">
+            Select lines and click <strong>Ask AI</strong>, or ask a general question below.
+          </p>
+        </div>
+        {onAskGeneral && <GeneralInput value={generalInput} onChange={setGeneralInput} onSubmit={handleGeneralSubmit} />}
       </div>
     );
   }
@@ -177,26 +169,24 @@ export const AITab: React.FC<AITabProps> = ({
           const basename = filePath.split('/').pop() || filePath;
 
           return (
-            <div key={filePath} className="mb-2">
+            <div key={filePath} className="mb-1">
               <button
                 data-file-group={filePath}
-                className={`ai-file-group-header ${highlightFilePath === filePath ? 'ai-file-group-highlight' : ''}`}
+                className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs hover:bg-muted transition-colors ${highlightFilePath === filePath ? 'ai-file-group-highlight' : ''}`}
                 onClick={() => toggleFile(filePath)}
               >
                 <svg
-                  className={`w-2.5 h-2.5 flex-shrink-0 transition-transform duration-150 ${isExpanded ? 'rotate-90' : ''}`}
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
+                  className={`w-3 h-3 text-muted-foreground/50 transition-transform flex-shrink-0 ${isExpanded ? 'rotate-90' : ''}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                 </svg>
-                <span className="truncate">{basename}</span>
-                <span className="text-[9px] font-mono bg-muted px-1 py-0.5 rounded ml-auto flex-shrink-0">
-                  {fileMessages.length}
-                </span>
+                <span className="truncate text-foreground font-medium">{basename}</span>
+                <CountBadge count={fileMessages.length} className="ml-auto flex-shrink-0 text-muted-foreground/50" />
               </button>
 
               {isExpanded && (
-                <div className="pl-3 space-y-2 mt-1">
+                <div className="ml-3 border-l border-border/30 pl-2 space-y-2 mt-1">
                   {fileMessages.map(({ question, response }) => (
                     <QAPair key={question.id} question={question} response={response} onScrollToLines={onScrollToLines} />
                   ))}
@@ -206,13 +196,13 @@ export const AITab: React.FC<AITabProps> = ({
           );
         })}
 
-        {/* General questions (no file scope) — below file groups */}
+        {/* General questions */}
         {generalMessages.length > 0 && (
           <div className="mb-3 mt-1">
             <div className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
               General
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 mt-1">
               {generalMessages.map(({ question, response }) => (
                 <QAPair key={question.id} question={question} response={response} onScrollToLines={onScrollToLines} />
               ))}
@@ -221,25 +211,46 @@ export const AITab: React.FC<AITabProps> = ({
         )}
       </div>
 
-      {/* General question input — always visible at bottom */}
-      {onAskGeneral && (
-        <div className="ai-general-input">
-          <textarea
-            value={generalInput}
-            onChange={(e) => setGeneralInput(e.target.value)}
-            placeholder="Ask about the overall changes..."
-            rows={1}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
-                handleGeneralSubmit();
-              }
-            }}
-          />
-        </div>
-      )}
+      {/* General question input */}
+      {onAskGeneral && <GeneralInput value={generalInput} onChange={setGeneralInput} onSubmit={handleGeneralSubmit} />}
     </div>
   );
 };
+
+/** General question input pinned at bottom */
+const GeneralInput: React.FC<{
+  value: string;
+  onChange: (v: string) => void;
+  onSubmit: () => void;
+}> = ({ value, onChange, onSubmit }) => (
+  <div className="border-t border-border/50 p-2">
+    <div className="flex gap-1.5">
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Ask about the overall changes..."
+        rows={1}
+        className="flex-1 px-2.5 py-1.5 bg-muted rounded-md text-xs text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-1 focus:ring-primary/50"
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && !e.nativeEvent.isComposing) {
+            e.preventDefault();
+            onSubmit();
+          }
+        }}
+      />
+      <button
+        onClick={onSubmit}
+        disabled={!value.trim()}
+        className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+        title={`Send (${submitHint})`}
+      >
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+        </svg>
+      </button>
+    </div>
+  </div>
+);
 
 /** Single Q&A pair */
 const QAPair: React.FC<{
@@ -252,32 +263,42 @@ const QAPair: React.FC<{
   return (
     <div data-question-id={question.id} className="flex flex-col gap-1.5">
       {/* Question */}
-      <div className="ai-question-bubble">
-        {scope === 'line' && question.filePath && question.lineStart != null && question.lineEnd != null && (
-          <button
-            className="ai-line-ref"
-            onClick={() => onScrollToLines(question.filePath!, question.lineStart!, question.lineEnd!, question.side ?? 'new')}
-          >
-            {formatLineRange(question.lineStart, question.lineEnd)}
-          </button>
-        )}
-        {scope === 'file' && (
-          <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary inline-block">
-            file
+      <div className="p-2.5 rounded-lg border border-transparent hover:bg-muted/30 transition-colors">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-1.5">
+            {scope === 'line' && question.filePath && question.lineStart != null && question.lineEnd != null && (
+              <button
+                className="ai-line-ref"
+                onClick={() => onScrollToLines(question.filePath!, question.lineStart!, question.lineEnd!, question.side ?? 'new')}
+              >
+                {formatLineRange(question.lineStart, question.lineEnd)}
+              </button>
+            )}
+            {scope === 'file' && (
+              <span className="text-[9px] font-semibold uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                file
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] text-muted-foreground/50">
+            {formatTimestamp(question.createdAt)}
           </span>
-        )}
-        <p className="text-xs mt-1">{question.prompt}</p>
+        </div>
+        <p className="text-xs text-foreground/80">{question.prompt}</p>
       </div>
 
       {/* Response */}
-      <div className="ai-response-bubble">
+      <div className="group relative p-2.5 rounded-lg border border-border/50 bg-popover/50 hover:bg-muted/30 transition-colors">
         {response.error ? (
           <p className="text-xs text-destructive">{response.error}</p>
         ) : response.text ? (
-          <div className="text-xs review-comment-body">
-            {renderInlineMarkdown(response.text)}
-            {response.isStreaming && <span className="ai-streaming-cursor inline-block ml-0.5" />}
-          </div>
+          <>
+            <div className="text-xs review-comment-body">
+              {renderMarkdown(response.text)}
+              {response.isStreaming && <span className="ai-streaming-cursor inline-block ml-0.5" />}
+            </div>
+            {!response.isStreaming && <CopyButton text={response.text} />}
+          </>
         ) : response.isStreaming ? (
           <span className="text-xs text-muted-foreground">
             <span className="ai-streaming-cursor" /> Thinking...

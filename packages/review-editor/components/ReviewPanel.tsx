@@ -6,6 +6,7 @@ import { HighlightedCode } from './HighlightedCode';
 import { detectLanguage } from '../utils/detectLanguage';
 import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
 import { usePRContext } from '../hooks/usePRContext';
+import { formatTimestamp } from '../utils/formatTimestamp';
 import { PRSummaryTab } from './PRSummaryTab';
 import { PRCommentsTab } from './PRCommentsTab';
 import { PRChecksTab } from './PRChecksTab';
@@ -73,22 +74,6 @@ const SuggestionPreview: React.FC<{ code: string; originalCode?: string; languag
     </div>
   );
 };
-
-function formatTimestamp(ts: number): string {
-  const now = Date.now();
-  const diff = now - ts;
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (seconds < 60) return 'now';
-  if (minutes < 60) return `${minutes}m`;
-  if (hours < 24) return `${hours}h`;
-  if (days < 7) return `${days}d`;
-
-  return new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
 
 const FILE_SCOPE_FIRST = { file: 0, line: 1 } as const;
 

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { formatLineRange } from '../utils/formatLineRange';
-import { renderInlineMarkdown } from '../utils/renderInlineMarkdown';
 import { SparklesIcon } from './SparklesIcon';
 import type { AIMessage } from '../hooks/useAIChat';
+
+const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
+const submitHint = isMac ? '⌘↵' : 'Ctrl+Enter';
 
 interface AskAIInputProps {
   lineStart: number;
@@ -92,6 +94,7 @@ export const AskAIInput: React.FC<AskAIInputProps> = ({
           onClick={handleSubmit}
           disabled={!question.trim() || isLoading}
           className="review-toolbar-btn primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 ml-auto"
+          title={`Ask (${submitHint})`}
         >
           {isLoading ? (
             <>

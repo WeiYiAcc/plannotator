@@ -122,6 +122,17 @@ export interface AIResultMessage {
   turns?: number;
 }
 
+export interface AIPermissionRequestMessage {
+  type: "permission_request";
+  requestId: string;
+  toolName: string;
+  toolInput: Record<string, unknown>;
+  title?: string;
+  displayName?: string;
+  description?: string;
+  toolUseId: string;
+}
+
 export interface AIUnknownMessage {
   type: "unknown";
   /** The raw message from the provider, for debugging/transparency. */
@@ -135,6 +146,7 @@ export type AIMessage =
   | AIToolResultMessage
   | AIErrorMessage
   | AIResultMessage
+  | AIPermissionRequestMessage
   | AIUnknownMessage;
 
 // ---------------------------------------------------------------------------
@@ -165,6 +177,12 @@ export interface AISession {
 
   /** Whether a query is currently in progress. */
   readonly isActive: boolean;
+
+  /**
+   * Respond to a permission request from the provider.
+   * Called when the user approves or denies a tool use in the UI.
+   */
+  respondToPermission?(requestId: string, allow: boolean, message?: string): void;
 
   /**
    * Callback invoked when the real session ID is resolved from the provider.
@@ -294,4 +312,10 @@ export interface ClaudeAgentSDKConfig extends AIProviderConfig {
    * doesn't work the same way (e.g., bun build --compile).
    */
   claudeExecutablePath?: string;
+  /**
+   * Setting sources to load permission rules from.
+   * Loads user's existing Claude Code permission rules so inline chat
+   * inherits what they've already approved.
+   */
+  settingSources?: string[];
 }

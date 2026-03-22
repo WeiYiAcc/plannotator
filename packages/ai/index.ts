@@ -62,6 +62,7 @@ export type {
   AIToolResultMessage,
   AIErrorMessage,
   AIResultMessage,
+  AIPermissionRequestMessage,
   AIUnknownMessage,
   AIContext,
   AIContextMode,

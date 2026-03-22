@@ -1,11 +1,12 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
-import type { AIMessage } from '../hooks/useAIChat';
+import type { AIMessage, PendingPermission } from '../hooks/useAIChat';
 import { renderMarkdown } from '../utils/renderMarkdown';
 import { formatLineRange } from '../utils/formatLineRange';
 import { formatTimestamp } from '../utils/formatTimestamp';
 import { SparklesIcon } from './SparklesIcon';
 import { CountBadge } from './CountBadge';
 import { CopyButton } from './CopyButton';
+import { PermissionCard } from './PermissionCard';
 
 const isMac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
 const submitHint = isMac ? '⌘↵' : 'Ctrl+Enter';
@@ -18,6 +19,8 @@ interface AITabProps {
   scrollToQuestionId?: string | null;
   onScrollToLines: (filePath: string, lineStart: number, lineEnd: number, side: 'old' | 'new') => void;
   onAskGeneral?: (question: string) => void;
+  permissionRequests?: PendingPermission[];
+  onRespondToPermission?: (requestId: string, allow: boolean) => void;
 }
 
 interface FileGroup {
@@ -39,6 +42,8 @@ export const AITab: React.FC<AITabProps> = ({
   scrollToQuestionId,
   onScrollToLines,
   onAskGeneral,
+  permissionRequests = [],
+  onRespondToPermission,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [expandedFiles, setExpandedFiles] = useState<Set<string>>(new Set());
@@ -195,6 +200,21 @@ export const AITab: React.FC<AITabProps> = ({
             </div>
           );
         })}
+
+        {/* Pending permission requests */}
+        {permissionRequests.filter(p => !p.decided).map(perm => (
+          <div key={perm.requestId} className="mb-2">
+            <PermissionCard
+              requestId={perm.requestId}
+              toolName={perm.toolName}
+              toolInput={perm.toolInput}
+              title={perm.title}
+              displayName={perm.displayName}
+              description={perm.description}
+              onRespond={onRespondToPermission ?? (() => {})}
+            />
+          </div>
+        ))}
 
         {/* General questions */}
         {generalMessages.length > 0 && (

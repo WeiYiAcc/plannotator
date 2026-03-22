@@ -53,6 +53,7 @@ interface ClaudeSDKQueryOptions {
   permissionMode?: string;
   allowDangerouslySkipPermissions?: boolean;
   pathToClaudeCodeExecutable?: string;
+  settingSources?: string[];
 }
 
 // ---------------------------------------------------------------------------
@@ -126,6 +127,7 @@ export class ClaudeAgentSDKProvider implements AIProvider {
       allowedTools: this.config.allowedTools ?? DEFAULT_ALLOWED_TOOLS,
       permissionMode: this.config.permissionMode ?? "default",
       claudeExecutablePath: this.config.claudeExecutablePath,
+      settingSources: this.config.settingSources ?? ['user', 'project'],
     };
   }
 }
@@ -161,6 +163,7 @@ interface SessionConfig {
   forkFromSession: string | null;
   resumeSessionId?: string;
   claudeExecutablePath?: string;
+  settingSources?: string[];
 }
 
 class ClaudeAgentSDKSession implements AISession {
@@ -175,6 +178,8 @@ class ClaudeAgentSDKSession implements AISession {
   private _firstQuerySent = false;
   /** Monotonic counter — each query() call gets a unique generation. */
   private _queryGen = 0;
+  /** Active Query object — needed to send control responses (permission decisions) */
+  private _activeQuery: any = null;
 
   constructor(config: SessionConfig) {
     this.config = config;
@@ -212,6 +217,7 @@ class ClaudeAgentSDKSession implements AISession {
       const options = this.buildQueryOptions();
 
       const stream = queryFn({ prompt: queryPrompt, options });
+      this._activeQuery = stream;
 
       this._firstQuerySent = true;
 
@@ -246,6 +252,7 @@ class ClaudeAgentSDKSession implements AISession {
       if (this._queryGen === gen) {
         this._isActive = false;
         this._currentAbort = null;
+        this._activeQuery = null;
       }
     }
   }
@@ -255,7 +262,20 @@ class ClaudeAgentSDKSession implements AISession {
       this._currentAbort.abort();
       this._isActive = false;
       this._currentAbort = null;
+      this._activeQuery = null;
     }
+  }
+
+  respondToPermission(requestId: string, allow: boolean, message?: string): void {
+    if (!this._activeQuery || !this._activeQuery.streamInput) return;
+
+    const response = allow
+      ? { type: 'control_response', response: { subtype: 'success', request_id: requestId, response: { behavior: 'allow' } } }
+      : { type: 'control_response', response: { subtype: 'success', request_id: requestId, response: { behavior: 'deny', message: message ?? 'User denied this action' } } };
+
+    this._activeQuery.streamInput(
+      (async function* () { yield response; })()
+    ).catch(() => {});
   }
 
   // -------------------------------------------------------------------------
@@ -280,6 +300,9 @@ class ClaudeAgentSDKSession implements AISession {
       persistSession: true,
       ...(this.config.claudeExecutablePath && {
         pathToClaudeCodeExecutable: this.config.claudeExecutablePath,
+      }),
+      ...(this.config.settingSources && {
+        settingSources: this.config.settingSources,
       }),
     };
 
@@ -395,6 +418,23 @@ function mapSDKMessage(msg: Record<string, unknown>): AIMessage[] {
           result: typeof msg.tool_use_result === "string"
             ? msg.tool_use_result
             : JSON.stringify(msg.tool_use_result),
+        }];
+      }
+      return [{ type: "unknown", raw: msg }];
+    }
+
+    case "control_request": {
+      const request = msg.request as Record<string, unknown> | undefined;
+      if (request?.subtype === "can_use_tool") {
+        return [{
+          type: "permission_request",
+          requestId: msg.request_id as string,
+          toolName: request.tool_name as string,
+          toolInput: (request.input as Record<string, unknown>) ?? {},
+          title: request.title as string | undefined,
+          displayName: request.display_name as string | undefined,
+          description: request.description as string | undefined,
+          toolUseId: request.tool_use_id as string,
         }];
       }
       return [{ type: "unknown", raw: msg }];

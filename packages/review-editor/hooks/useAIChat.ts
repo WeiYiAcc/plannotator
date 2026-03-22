@@ -6,6 +6,17 @@ export interface AIMessage {
   response: AIResponse;
 }
 
+export interface PendingPermission {
+  requestId: string;
+  toolName: string;
+  toolInput: Record<string, unknown>;
+  title?: string;
+  displayName?: string;
+  description?: string;
+  toolUseId: string;
+  decided?: 'allow' | 'deny';
+}
+
 interface UseAIChatOptions {
   patch: string;
 }
@@ -25,6 +36,7 @@ export function useAIChat({ patch }: UseAIChatOptions) {
   const [isCreatingSession, setIsCreatingSession] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [permissionRequests, setPermissionRequests] = useState<PendingPermission[]>([]);
 
   const abortRef = useRef<AbortController | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -171,6 +183,16 @@ export function useAIChat({ patch }: UseAIChatOptions) {
                 }
                 return updated;
               });
+            } else if (msg.type === 'permission_request') {
+              setPermissionRequests(prev => [...prev, {
+                requestId: msg.requestId,
+                toolName: msg.toolName,
+                toolInput: msg.toolInput,
+                title: msg.title,
+                displayName: msg.displayName,
+                description: msg.description,
+                toolUseId: msg.toolUseId,
+              }]);
             } else if (msg.type === 'error') {
               setMessages(prev => {
                 const updated = [...prev];
@@ -243,6 +265,26 @@ export function useAIChat({ patch }: UseAIChatOptions) {
     }
   }, []);
 
+  const respondToPermission = useCallback((requestId: string, allow: boolean) => {
+    if (!sessionIdRef.current) return;
+
+    // Update the permission request state
+    setPermissionRequests(prev =>
+      prev.map(p => p.requestId === requestId ? { ...p, decided: allow ? 'allow' : 'deny' } : p)
+    );
+
+    // Send the decision to the server
+    fetch('/api/ai/permission', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sessionId: sessionIdRef.current,
+        requestId,
+        allow,
+      }),
+    }).catch(() => {});
+  }, []);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -257,6 +299,8 @@ export function useAIChat({ patch }: UseAIChatOptions) {
     isCreatingSession,
     isStreaming,
     error,
+    permissionRequests,
+    respondToPermission,
     ask,
     abort,
     sessionId,

@@ -47,6 +47,8 @@ interface ReviewPanelProps {
   activeFilePath?: string;
   scrollToQuestionId?: string | null;
   onAskGeneral?: (question: string) => void;
+  aiPermissionRequests?: import('../hooks/useAIChat').PendingPermission[];
+  onRespondToPermission?: (requestId: string, allow: boolean) => void;
 }
 
 const SuggestionPreview: React.FC<{ code: string; originalCode?: string; language?: string }> = ({ code, originalCode, language }) => {
@@ -140,6 +142,8 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
   activeFilePath,
   scrollToQuestionId,
   onAskGeneral,
+  aiPermissionRequests = [],
+  onRespondToPermission,
 }) => {
   const totalCount = annotations.length + (editorAnnotations?.length ?? 0);
   const [copied, setCopied] = useState(false);
@@ -398,6 +402,8 @@ export const ReviewPanel: React.FC<ReviewPanelProps> = ({
               scrollToQuestionId={scrollToQuestionId}
               onScrollToLines={onScrollToAILines ?? (() => {})}
               onAskGeneral={onAskGeneral}
+              permissionRequests={aiPermissionRequests}
+              onRespondToPermission={onRespondToPermission}
             />
           )}
 

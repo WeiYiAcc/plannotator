@@ -1405,6 +1405,8 @@ const ReviewApp: React.FC = () => {
             activeFilePath={files[activeFileIndex]?.path}
             scrollToQuestionId={scrollToQuestionId}
             onAskGeneral={handleAskGeneral}
+            aiPermissionRequests={aiChat.permissionRequests}
+            onRespondToPermission={aiChat.respondToPermission}
           />
         </div>
 

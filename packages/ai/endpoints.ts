@@ -235,6 +235,42 @@ export function createAIEndpoints(deps: AIEndpointDeps) {
       return Response.json({ ok: true });
     },
 
+    "/api/ai/permission": async (req: Request) => {
+      if (req.method !== "POST") {
+        return new Response("Method not allowed", { status: 405 });
+      }
+
+      const body = (await req.json()) as {
+        sessionId: string;
+        requestId: string;
+        allow: boolean;
+        message?: string;
+      };
+
+      if (!body.sessionId || !body.requestId) {
+        return Response.json(
+          { error: "Missing sessionId or requestId" },
+          { status: 400 }
+        );
+      }
+
+      const entry = sessionManager.get(body.sessionId);
+      if (!entry) {
+        return Response.json(
+          { error: "Session not found" },
+          { status: 404 }
+        );
+      }
+
+      entry.session.respondToPermission?.(
+        body.requestId,
+        body.allow,
+        body.message
+      );
+
+      return Response.json({ ok: true });
+    },
+
     "/api/ai/sessions": async (_req: Request) => {
       const entries = sessionManager.list();
       return Response.json(

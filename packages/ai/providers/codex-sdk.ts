@@ -104,10 +104,7 @@ let CodexClass: any = null;
 
 async function getCodexClass() {
   if (!CodexClass) {
-    // Dynamic string prevents the bundler from statically resolving this
-    // optional peer dependency during bun build --compile
-    const pkg = "@openai/codex-sdk";
-    const mod = await import(/* @vite-ignore */ pkg);
+    const mod = await import("@openai/codex-sdk");
     CodexClass = mod.default ?? mod.Codex;
   }
   return CodexClass;

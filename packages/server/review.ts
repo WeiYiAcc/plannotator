@@ -122,11 +122,8 @@ export async function startReviewServer(
   // Try Codex SDK
   try {
     await import("@plannotator/ai/providers/codex-sdk");
-    // Eagerly verify the SDK is importable — the provider module loads fine
-    // but the actual @openai/codex-sdk import is deferred to first query.
-    // Fail fast here so we don't advertise a broken provider.
-    const pkg = "@openai/codex-sdk";
-    await import(pkg);
+    // Eagerly verify the SDK is importable so we don't advertise a broken provider.
+    await import("@openai/codex-sdk");
     const codexPath = Bun.which("codex");
     const provider = await createProvider({
       type: "codex-sdk",

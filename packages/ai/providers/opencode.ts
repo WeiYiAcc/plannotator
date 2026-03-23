@@ -56,6 +56,7 @@ export class OpenCodeProvider implements AIProvider {
 	private server: { url: string; close: () => void } | null = null;
 	// biome-ignore lint/suspicious/noExplicitAny: SDK types not available at compile time
 	private client: any = null;
+	private startPromise: Promise<void> | null = null;
 
 	constructor(config: OpenCodeConfig) {
 		this.config = config;
@@ -64,7 +65,11 @@ export class OpenCodeProvider implements AIProvider {
 	/** Lazy-spawn the OpenCode server and create the HTTP client. */
 	async ensureServer(): Promise<void> {
 		if (this.server && this.client) return;
+		this.startPromise ??= this.doStart();
+		return this.startPromise;
+	}
 
+	private async doStart(): Promise<void> {
 		const { createOpencodeServer, createOpencodeClient } = await getSDK();
 
 		this.server = await createOpencodeServer({
@@ -251,8 +256,7 @@ class OpenCodeSession extends BaseSession {
 			this._firstQuerySent = true;
 
 			// Drain SSE events filtered by session ID
-			try {
-				for await (const event of stream) {
+			for await (const event of stream) {
 					const eventType = event.type as string;
 					const props = event.properties as Record<string, unknown> | undefined;
 					if (!props) continue;
@@ -272,9 +276,6 @@ class OpenCodeSession extends BaseSession {
 						}
 					}
 				}
-			} finally {
-				// Stream iteration ends when we return or break
-			}
 		} catch (err) {
 			yield {
 				type: "error",

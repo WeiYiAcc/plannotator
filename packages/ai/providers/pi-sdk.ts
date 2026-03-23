@@ -214,8 +214,10 @@ export class PiSDKProvider implements AIProvider {
   async fetchModels(): Promise<void> {
     const piPath = this.config.piExecutablePath ?? "pi";
 
+    let proc: PiProcess | undefined;
+
     try {
-      const proc = new PiProcess();
+      proc = new PiProcess();
       await proc.spawn(piPath, this.config.cwd ?? process.cwd());
 
       const data = await Promise.race([
@@ -224,8 +226,6 @@ export class PiSDKProvider implements AIProvider {
           setTimeout(() => reject(new Error("Timeout")), 10_000)
         ),
       ]);
-
-      proc.kill();
 
       const rawModels = (data as { models?: Array<{ provider: string; id: string; name?: string }> }).models;
       if (rawModels && rawModels.length > 0) {
@@ -237,6 +237,8 @@ export class PiSDKProvider implements AIProvider {
       }
     } catch {
       // Pi not configured or no models available
+    } finally {
+      proc?.kill();
     }
   }
 }
@@ -295,6 +297,16 @@ class PiSDKSession extends BaseSession {
           }
         } catch {
           // Continue with placeholder ID
+        }
+
+        // If subprocess died during startup, surface the error immediately
+        if (!this.process.alive) {
+          yield {
+            type: "error",
+            error: "Pi process exited during startup. Check that Pi is configured correctly (API keys, models).",
+            code: "pi_startup_error",
+          };
+          return;
         }
       }
 
@@ -433,14 +445,10 @@ export function mapPiEvent(
       const isError = event.isError as boolean;
       const resultStr = result == null ? "" : typeof result === "string" ? result : JSON.stringify(result);
 
-      if (isError) {
-        return [{ type: "error", error: resultStr || "Tool execution failed", code: "pi_tool_error" }];
-      }
-
       return [{
         type: "tool_result",
         toolUseId: event.toolCallId as string,
-        result: resultStr,
+        result: isError ? `[Error] ${resultStr || "Tool execution failed"}` : resultStr,
       }];
     }
 

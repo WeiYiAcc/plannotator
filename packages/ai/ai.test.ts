@@ -978,7 +978,7 @@ describe("mapPiEvent", () => {
     }]);
   });
 
-  test("tool_execution_end with error maps to error", () => {
+  test("tool_execution_end with error maps to tool_result with [Error] prefix", () => {
     const result = mapPiEvent({
       type: "tool_execution_end",
       toolCallId: "tc_1",
@@ -987,9 +987,9 @@ describe("mapPiEvent", () => {
       isError: true,
     }, SESSION_ID);
     expect(result).toEqual([{
-      type: "error",
-      error: "not found",
-      code: "pi_tool_error",
+      type: "tool_result",
+      toolUseId: "tc_1",
+      result: "[Error] not found",
     }]);
   });
 

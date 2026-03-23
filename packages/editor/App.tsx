@@ -241,6 +241,7 @@ const App: React.FC = () => {
       `/api/doc?path=${encodeURIComponent(path)}&base=${encodeURIComponent(dirPath)}`;
     linkedDocHook.open(absolutePath, buildUrl, 'files');
     fileBrowser.setActiveFile(absolutePath);
+    vaultBrowser.setActiveFile(null);
   }, [linkedDocHook, fileBrowser]);
 
   // Route linked doc opens through vault/file browser endpoint when viewing one of those files

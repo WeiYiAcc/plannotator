@@ -214,7 +214,7 @@ export const Settings: React.FC<SettingsProps> = ({ taterMode, onTaterModeChange
     const newSettings = { ...fileBrowserSettings, ...updates };
     setFileBrowserSettings(newSettings);
     saveFileBrowserSettings(newSettings);
-    if (onUIPreferencesChange) onUIPreferencesChange(uiPrefs);
+    if (onUIPreferencesChange) onUIPreferencesChange({ ...uiPrefs });
   };
 
   const addDirectory = () => {

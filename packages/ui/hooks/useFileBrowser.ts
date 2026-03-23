@@ -132,7 +132,7 @@ export function useFileBrowser(): UseFileBrowserReturn {
     fetchTree,
     fetchAll,
     activeFile,
-    activeDirPath: activeFile ? (dirs.find((d) => activeFile.startsWith(d.path))?.path ?? null) : null,
+    activeDirPath: activeFile ? (dirs.find((d) => activeFile.startsWith(d.path + "/"))?.path ?? null) : null,
     setActiveFile,
   };
 }

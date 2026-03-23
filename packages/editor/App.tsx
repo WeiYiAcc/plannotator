@@ -697,7 +697,11 @@ const App: React.FC = () => {
       }
 
       // No annotations → Approve, otherwise → Send Feedback
-      if (annotations.length === 0 && editorAnnotations.length === 0) {
+      const docAnnotations = linkedDocHook.getDocAnnotations();
+      const hasDocAnnotations = Array.from(docAnnotations.values()).some(
+        (d) => d.annotations.length > 0 || d.globalAttachments.length > 0
+      );
+      if (annotations.length === 0 && editorAnnotations.length === 0 && !hasDocAnnotations) {
         // Check if agent exists for OpenCode users
         if (origin === 'opencode') {
           const warning = getAgentWarning();

@@ -230,7 +230,7 @@ class OpenCodeSession extends BaseSession {
 			}
 
 			// Subscribe to SSE events
-			const { stream } = this.config.client.event.subscribe();
+			const { stream } = await this.config.client.event.subscribe();
 
 			// Send prompt asynchronously
 			try {

@@ -154,6 +154,24 @@ export async function startReviewServer(
     // Pi not available
   }
 
+  // Try OpenCode
+  try {
+    const { OpenCodeProvider } = await import("@plannotator/ai/providers/opencode");
+    const opencodePath = Bun.which("opencode");
+    if (opencodePath) {
+      const provider = await createProvider({
+        type: "opencode",
+        cwd: process.cwd(),
+      });
+      if (provider instanceof OpenCodeProvider) {
+        await provider.fetchModels();
+      }
+      aiRegistry.register(provider);
+    }
+  } catch {
+    // OpenCode not available
+  }
+
   // Create endpoints if any provider registered
   if (aiRegistry.size > 0) {
     aiEndpoints = createAIEndpoints({

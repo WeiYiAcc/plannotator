@@ -359,3 +359,11 @@ export interface PiSDKConfig extends AIProviderConfig {
    */
   piExecutablePath?: string;
 }
+
+export interface OpenCodeConfig extends AIProviderConfig {
+  type: "opencode";
+  /** Hostname for the OpenCode server. Default: "127.0.0.1". */
+  hostname?: string;
+  /** Port for the OpenCode server. Default: random. */
+  port?: number;
+}

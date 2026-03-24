@@ -26,7 +26,7 @@ import type { AssistantMessage, TextContent } from "@mariozechner/pi-ai";
 import { Type } from "@mariozechner/pi-ai";
 import type { ExtensionAPI, ExtensionContext } from "@mariozechner/pi-coding-agent";
 import { Key } from "@mariozechner/pi-tui";
-import { markCompletedSteps, parseChecklist, type ChecklistItem } from "./utils.js";
+import { markCompletedSteps, parseChecklist, type ChecklistItem } from "./generated/checklist.js";
 import {
   type AnnotateServerResult,
   startPlanReviewServer,

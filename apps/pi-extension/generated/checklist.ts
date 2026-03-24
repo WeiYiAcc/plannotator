@@ -1,11 +1,9 @@
+// @generated — DO NOT EDIT. Source: packages/shared/checklist.ts
 /**
- * Plannotator Pi extension utilities.
+ * Checklist parsing and progress tracking utilities.
  *
- * Checklist parsing and progress tracking helpers.
- * (No access to pi-mono's plan-mode/utils at runtime.)
+ * Shared between Pi extension and OpenCode plugin for plan execution tracking.
  */
-
-// ── Checklist Parsing ────────────────────────────────────────────────────
 
 export interface ChecklistItem {
   /** 1-based step number, compatible with markCompletedSteps/extractDoneSteps. */
@@ -35,8 +33,6 @@ export function parseChecklist(content: string): ChecklistItem[] {
   }
   return items;
 }
-
-// ── Progress Tracking ────────────────────────────────────────────────────
 
 export function extractDoneSteps(message: string): number[] {
   const steps: number[] = [];

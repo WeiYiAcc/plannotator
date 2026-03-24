@@ -65,7 +65,10 @@ export class OpenCodeProvider implements AIProvider {
 	/** Lazy-spawn the OpenCode server and create the HTTP client. */
 	async ensureServer(): Promise<void> {
 		if (this.server && this.client) return;
-		this.startPromise ??= this.doStart();
+		this.startPromise ??= this.doStart().catch((err) => {
+			this.startPromise = null;
+			throw err;
+		});
 		return this.startPromise;
 	}
 
@@ -144,6 +147,7 @@ export class OpenCodeProvider implements AIProvider {
 			this.server.close();
 			this.server = null;
 			this.client = null;
+			this.startPromise = null;
 		}
 	}
 

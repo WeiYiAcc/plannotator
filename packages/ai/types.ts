@@ -244,7 +244,7 @@ export interface CreateSessionOptions {
  * 3. Streaming responses back as AIMessage events
  *
  * Providers are registered by name and selected at runtime based on the
- * host environment (Claude Code → "claude-agent-sdk", OpenCode → future).
+ * host environment (Claude Code → "claude-agent-sdk", OpenCode → "opencode-sdk").
  */
 export interface AIProvider {
   /** Unique name for this provider (e.g. "claude-agent-sdk"). */

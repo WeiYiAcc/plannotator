@@ -4,81 +4,26 @@
  * detectObsidianVaults, handleObsidian*, handleFileBrowserRequest
  */
 
-import { existsSync, readdirSync, readFileSync, statSync, type Dirent } from "node:fs";
+import {
+	existsSync,
+	readdirSync,
+	readFileSync,
+	statSync,
+	type Dirent,
+} from "node:fs";
 import type { ServerResponse } from "node:http";
 import { isAbsolute, join, resolve as resolvePath } from "node:path";
 
 import { json } from "./helpers";
 
+import {
+	type VaultNode,
+	buildFileTree,
+	FILE_BROWSER_EXCLUDED,
+} from "../generated/reference-common.js";
+import { detectObsidianVaults } from "../generated/integrations-common.js";
+
 type Res = ServerResponse;
-
-interface VaultNode {
-	name: string;
-	path: string;
-	type: "file" | "folder";
-	children?: VaultNode[];
-}
-
-function buildFileTree(relativePaths: string[]): VaultNode[] {
-	const root: VaultNode[] = [];
-	for (const filePath of relativePaths) {
-		const parts = filePath.split("/");
-		let current = root;
-		let pathSoFar = "";
-		for (let i = 0; i < parts.length; i++) {
-			const part = parts[i];
-			pathSoFar = pathSoFar ? `${pathSoFar}/${part}` : part;
-			const isFile = i === parts.length - 1;
-			let node = current.find(
-				(n) => n.name === part && n.type === (isFile ? "file" : "folder"),
-			);
-			if (!node) {
-				node = {
-					name: part,
-					path: pathSoFar,
-					type: isFile ? "file" : "folder",
-				};
-				if (!isFile) node.children = [];
-				current.push(node);
-			}
-			if (!isFile) current = node.children!;
-		}
-	}
-	const sortNodes = (nodes: VaultNode[]) => {
-		nodes.sort((a, b) => {
-			if (a.type !== b.type) return a.type === "folder" ? -1 : 1;
-			return a.name.localeCompare(b.name);
-		});
-		for (const node of nodes) {
-			if (node.children) sortNodes(node.children);
-		}
-	};
-	sortNodes(root);
-	return root;
-}
-
-const IGNORED_DIRS = [
-	"node_modules",
-	".git",
-	"dist",
-	"build",
-	".next",
-	"__pycache__",
-	".obsidian",
-	".trash",
-	".venv",
-	"vendor",
-	"target",
-	".cache",
-	"coverage",
-	".turbo",
-	".svelte-kit",
-	".nuxt",
-	".output",
-	".parcel-cache",
-	".webpack",
-	".expo",
-];
 
 /** Recursively walk a directory collecting markdown files, skipping ignored dirs. */
 function walkMarkdownFiles(dir: string, root: string, results: string[]): void {
@@ -90,7 +35,7 @@ function walkMarkdownFiles(dir: string, root: string, results: string[]): void {
 	}
 	for (const entry of entries) {
 		if (entry.isDirectory()) {
-			if (IGNORED_DIRS.includes(entry.name)) continue;
+			if (FILE_BROWSER_EXCLUDED.includes(entry.name + "/")) continue;
 			walkMarkdownFiles(join(dir, entry.name), root, results);
 		} else if (entry.isFile() && /\.mdx?$/i.test(entry.name)) {
 			const relative = join(dir, entry.name)
@@ -188,36 +133,6 @@ export function handleDocRequest(res: Res, url: URL): void {
 	}
 
 	json(res, { error: `File not found: ${requestedPath}` }, 404);
-}
-
-/** Detect Obsidian vaults. Node.js copy of detectObsidianVaults from integrations.ts. */
-function detectObsidianVaults(): string[] {
-	try {
-		const home = process.env.HOME || process.env.USERPROFILE || "";
-		let configPath: string;
-		if (process.platform === "darwin") {
-			configPath = join(
-				home,
-				"Library/Application Support/obsidian/obsidian.json",
-			);
-		} else if (process.platform === "win32") {
-			const appData = process.env.APPDATA || join(home, "AppData/Roaming");
-			configPath = join(appData, "obsidian/obsidian.json");
-		} else {
-			configPath = join(home, ".config/obsidian/obsidian.json");
-		}
-		if (!existsSync(configPath)) return [];
-		const config = JSON.parse(readFileSync(configPath, "utf-8"));
-		if (!config.vaults || typeof config.vaults !== "object") return [];
-		const vaults: string[] = [];
-		for (const vaultId of Object.keys(config.vaults)) {
-			const vault = config.vaults[vaultId];
-			if (vault.path && existsSync(vault.path)) vaults.push(vault.path);
-		}
-		return vaults;
-	} catch {
-		return [];
-	}
 }
 
 export function handleObsidianVaultsRequest(res: Res): void {

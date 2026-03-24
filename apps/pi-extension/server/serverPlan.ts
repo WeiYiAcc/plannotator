@@ -47,7 +47,7 @@ export interface PlanServerResult {
 	port: number;
 	portSource: "env" | "remote-default" | "random";
 	url: string;
-	waitForDecision: () => Promise<{ approved: boolean; feedback?: string }>;
+	waitForDecision: () => Promise<{ approved: boolean; feedback?: string; savedPath?: string; agentSwitch?: string; permissionMode?: string }>;
 	waitForDone?: () => Promise<void>;
 	stop: () => void;
 }
@@ -56,6 +56,7 @@ export async function startPlanReviewServer(options: {
 	plan: string;
 	htmlContent: string;
 	origin?: string;
+	permissionMode?: string;
 	sharingEnabled?: boolean;
 	shareBaseUrl?: string;
 	pasteApiUrl?: string;
@@ -90,6 +91,7 @@ export async function startPlanReviewServer(options: {
 	}
 
 	// --- Plan review mode setup (skip in archive mode) ---
+	const repoInfo = options.mode !== "archive" ? getRepoInfo() : null;
 	const slug = options.mode !== "archive" ? generateSlug(options.plan) : "";
 	const project = options.mode !== "archive" ? detectProjectName() : "";
 	const historyResult =
@@ -112,12 +114,14 @@ export async function startPlanReviewServer(options: {
 	let resolveDecision!: (result: {
 		approved: boolean;
 		feedback?: string;
+		savedPath?: string;
 		agentSwitch?: string;
 		permissionMode?: string;
 	}) => void;
 	const decisionPromise = new Promise<{
 		approved: boolean;
 		feedback?: string;
+		savedPath?: string;
 		agentSwitch?: string;
 		permissionMode?: string;
 	}>((r) => {
@@ -127,8 +131,8 @@ export async function startPlanReviewServer(options: {
 	// Draft key for annotation persistence
 	const draftKey = options.mode !== "archive" ? contentHash(options.plan) : "";
 
-	// Editor annotations (in-memory, VS Code integration)
-	const editorAnnotations = createEditorAnnotationHandler();
+	// Editor annotations (in-memory, VS Code integration — skip in archive mode)
+	const editorAnnotations = options.mode !== "archive" ? createEditorAnnotationHandler() : null;
 
 	// Lazy cache for in-session archive tab
 	let cachedArchivePlans: ArchivedPlan[] | null = null;
@@ -139,12 +143,12 @@ export async function startPlanReviewServer(options: {
 		if (url.pathname === "/api/done" && req.method === "POST") {
 			resolveDone?.();
 			json(res, { ok: true });
-		} else if (url.pathname === "/api/archive/plans") {
+		} else if (url.pathname === "/api/archive/plans" && req.method === "GET") {
 			const customPath = url.searchParams.get("customPath") || undefined;
 			if (!cachedArchivePlans)
 				cachedArchivePlans = listArchivedPlans(customPath);
 			json(res, { plans: cachedArchivePlans });
-		} else if (url.pathname === "/api/archive/plan") {
+		} else if (url.pathname === "/api/archive/plan" && req.method === "GET") {
 			const filename = url.searchParams.get("filename");
 			const customPath = url.searchParams.get("customPath") || undefined;
 			if (!filename) {
@@ -185,18 +189,18 @@ export async function startPlanReviewServer(options: {
 					archivePlans,
 					sharingEnabled,
 					shareBaseUrl,
-					pasteApiUrl,
 				});
 			} else {
 				json(res, {
 					plan: options.plan,
 					origin: options.origin ?? "pi",
+					permissionMode: options.permissionMode,
 					previousPlan,
 					versionInfo,
 					sharingEnabled,
 					shareBaseUrl,
 					pasteApiUrl,
-					repoInfo: getRepoInfo(),
+					repoInfo,
 					projectRoot: process.cwd(),
 				});
 			}
@@ -206,17 +210,17 @@ export async function startPlanReviewServer(options: {
 			await handleUploadRequest(req, res);
 		} else if (url.pathname === "/api/draft") {
 			await handleDraftRequest(req, res, draftKey);
-		} else if (await editorAnnotations.handle(req, res, url)) {
+		} else if (editorAnnotations && (await editorAnnotations.handle(req, res, url))) {
 			return;
-		} else if (url.pathname === "/api/doc") {
+		} else if (url.pathname === "/api/doc" && req.method === "GET") {
 			handleDocRequest(res, url);
 		} else if (url.pathname === "/api/obsidian/vaults") {
 			handleObsidianVaultsRequest(res);
-		} else if (url.pathname === "/api/reference/obsidian/files") {
+		} else if (url.pathname === "/api/reference/obsidian/files" && req.method === "GET") {
 			handleObsidianFilesRequest(res, url);
-		} else if (url.pathname === "/api/reference/obsidian/doc") {
+		} else if (url.pathname === "/api/reference/obsidian/doc" && req.method === "GET") {
 			handleObsidianDocRequest(res, url);
-		} else if (url.pathname === "/api/reference/files") {
+		} else if (url.pathname === "/api/reference/files" && req.method === "GET") {
 			handleFileBrowserRequest(res, url);
 		} else if (
 			url.pathname === "/api/plan/vscode-diff" &&
@@ -366,11 +370,13 @@ export async function startPlanReviewServer(options: {
 				);
 			}
 			deleteDraft(draftKey);
+			const effectivePermissionMode = requestedPermissionMode || options.permissionMode;
 			resolveDecision({
 				approved: true,
 				feedback,
+				savedPath,
 				agentSwitch,
-				permissionMode: requestedPermissionMode,
+				permissionMode: effectivePermissionMode,
 			});
 			json(res, { ok: true, savedPath });
 		} else if (url.pathname === "/api/deny" && req.method === "POST") {
@@ -400,7 +406,7 @@ export async function startPlanReviewServer(options: {
 				);
 			}
 			deleteDraft(draftKey);
-			resolveDecision({ approved: false, feedback });
+			resolveDecision({ approved: false, feedback, savedPath });
 			json(res, { ok: true, savedPath });
 		} else {
 			html(res, options.htmlContent);

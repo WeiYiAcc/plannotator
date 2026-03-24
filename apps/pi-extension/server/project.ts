@@ -6,6 +6,7 @@
 import { execSync } from "node:child_process";
 import { basename } from "node:path";
 import { sanitizeTag } from "../generated/project.js";
+import { parseRemoteUrl, getDirName } from "../generated/repo.js";
 
 /** Run a git command and return stdout (empty string on error). */
 function git(cmd: string): string {
@@ -36,25 +37,6 @@ export function detectProjectName(): string {
 	} catch {
 		return "_unknown";
 	}
-}
-
-export function parseRemoteUrl(url: string): string | null {
-	if (!url) return null;
-
-	const sshMatch = url.match(/:([^/]+\/[^/]+?)(?:\.git)?$/);
-	if (sshMatch) return sshMatch[1];
-
-	const httpsMatch = url.match(/\/([^/]+\/[^/]+?)(?:\.git)?$/);
-	if (httpsMatch) return httpsMatch[1];
-
-	return null;
-}
-
-export function getDirName(path: string): string | null {
-	if (!path) return null;
-	const trimmed = path.trim().replace(/\/+$/, "");
-	const parts = trimmed.split("/");
-	return parts[parts.length - 1] || null;
 }
 
 export function getRepoInfo(): { display: string; branch?: string } | null {

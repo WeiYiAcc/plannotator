@@ -315,7 +315,6 @@ export default function plannotator(pi: ExtensionAPI): void {
 					htmlContent: reviewHtmlContent,
 					sharingEnabled: process.env.PLANNOTATOR_SHARE !== "disabled",
 					shareBaseUrl: process.env.PLANNOTATOR_SHARE_URL || undefined,
-					pasteApiUrl: process.env.PLANNOTATOR_PASTE_URL || undefined,
 				});
 			} catch (err) {
 				ctx.ui.notify(

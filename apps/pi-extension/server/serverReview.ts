@@ -112,7 +112,6 @@ export async function startReviewServer(options: {
 	error?: string;
 	sharingEnabled?: boolean;
 	shareBaseUrl?: string;
-	pasteApiUrl?: string;
 	prMetadata?: PRMetadata;
 }): Promise<ReviewServerResult> {
 	const draftKey = contentHash(options.rawPatch);
@@ -135,9 +134,6 @@ export async function startReviewServer(options: {
 		options.sharingEnabled ?? process.env.PLANNOTATOR_SHARE !== "disabled";
 	const shareBaseUrl =
 		(options.shareBaseUrl ?? process.env.PLANNOTATOR_SHARE_URL) || undefined;
-	const pasteApiUrl =
-		(options.pasteApiUrl ?? process.env.PLANNOTATOR_PASTE_URL) || undefined;
-
 	let resolveDecision!: (result: {
 		approved: boolean;
 		feedback: string;
@@ -252,7 +248,13 @@ export async function startReviewServer(options: {
 			aiEndpoints = ai.createAIEndpoints({
 				registry,
 				sessionManager,
-				getCwd: () => options.gitContext?.cwd ?? process.cwd(),
+				getCwd: () => {
+					if (currentDiffType.startsWith("worktree:")) {
+						const parsed = parseWorktreeDiffType(currentDiffType);
+						if (parsed) return parsed.path;
+					}
+					return options.gitContext?.cwd ?? process.cwd();
+				},
 			});
 			aiSessionManager = sessionManager;
 			aiRegistry = registry;
@@ -273,7 +275,6 @@ export async function startReviewServer(options: {
 				gitContext: isPRMode ? undefined : options.gitContext,
 				sharingEnabled,
 				shareBaseUrl,
-				pasteApiUrl,
 				repoInfo,
 				...(isPRMode && { prMetadata: prMeta, platformUser }),
 				...(currentError ? { error: currentError } : {}),

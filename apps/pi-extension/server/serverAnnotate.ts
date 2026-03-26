@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { dirname, resolve as resolvePath } from "node:path";
 
 import { contentHash, deleteDraft } from "../generated/draft.js";
-import { loadConfig, saveConfig, detectGitUser } from "../generated/config.js";
+import { saveConfig, detectGitUser, getServerConfig } from "../generated/config.js";
 
 import {
 	handleDraftRequest,
@@ -75,7 +75,7 @@ export async function startAnnotateServer(options: {
 				pasteApiUrl,
 				repoInfo,
 				projectRoot: options.folderPath || process.cwd(),
-				serverConfig: { displayName: loadConfig().displayName, gitUser: gitUser ?? undefined },
+				serverConfig: getServerConfig(gitUser),
 			});
 		} else if (url.pathname === "/api/config" && req.method === "POST") {
 			try {

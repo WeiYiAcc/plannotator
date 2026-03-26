@@ -16,7 +16,7 @@ import { getRepoInfo } from "./repo";
 import { handleImage, handleUpload, handleServerReady, handleDraftSave, handleDraftLoad, handleDraftDelete, handleFavicon } from "./shared-handlers";
 import { handleDoc, handleFileBrowserFiles } from "./reference-handlers";
 import { contentHash, deleteDraft } from "./draft";
-import { loadConfig, saveConfig, detectGitUser } from "./config";
+import { saveConfig, detectGitUser, getServerConfig } from "./config";
 import { dirname } from "path";
 import { isWSL } from "./browser";
 
@@ -140,7 +140,7 @@ export async function startAnnotateServer(
               repoInfo,
               projectRoot: folderPath || process.cwd(),
               isWSL: wslFlag,
-              serverConfig: { displayName: loadConfig().displayName, gitUser: gitUser ?? undefined },
+              serverConfig: getServerConfig(gitUser),
             });
           }
 

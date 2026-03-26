@@ -60,3 +60,11 @@ export function detectGitUser(): string | null {
     return null;
   }
 }
+
+/**
+ * Build the serverConfig payload for API responses.
+ * Reads config.json fresh each call so the response reflects the latest file on disk.
+ */
+export function getServerConfig(gitUser: string | null): { displayName?: string; gitUser?: string } {
+  return { displayName: loadConfig().displayName, gitUser: gitUser ?? undefined };
+}

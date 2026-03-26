@@ -91,11 +91,6 @@ class ConfigStore {
     return () => this.listeners.delete(listener);
   }
 
-  /** Snapshot version for useSyncExternalStore. */
-  getVersion(): number {
-    return this.version;
-  }
-
   private notify(): void {
     this.version++;
     for (const fn of this.listeners) fn();

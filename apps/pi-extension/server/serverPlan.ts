@@ -34,7 +34,7 @@ import {
 } from "./integrations.js";
 import { listenOnPort } from "./network.js";
 
-import { loadConfig, saveConfig, detectGitUser } from "../generated/config.js";
+import { saveConfig, detectGitUser, getServerConfig } from "../generated/config.js";
 import { detectProjectName, getRepoInfo } from "./project.js";
 import {
 	handleDocRequest,
@@ -191,7 +191,7 @@ export async function startPlanReviewServer(options: {
 					archivePlans,
 					sharingEnabled,
 					shareBaseUrl,
-					serverConfig: { displayName: loadConfig().displayName, gitUser: gitUser ?? undefined },
+					serverConfig: getServerConfig(gitUser),
 				});
 			} else {
 				json(res, {
@@ -205,7 +205,7 @@ export async function startPlanReviewServer(options: {
 					pasteApiUrl,
 					repoInfo,
 					projectRoot: process.cwd(),
-					serverConfig: { displayName: loadConfig().displayName, gitUser: gitUser ?? undefined },
+					serverConfig: getServerConfig(gitUser),
 				});
 			}
 		} else if (url.pathname === "/api/config" && req.method === "POST") {

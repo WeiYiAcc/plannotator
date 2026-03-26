@@ -2,7 +2,6 @@
  * Settings registry — declares all config settings and their resolution rules.
  *
  * Each SettingDef describes:
- *   - cookieKey: where the value is cached in the browser
  *   - defaultValue: fallback (can be a lazy factory for expensive defaults)
  *   - fromCookie/toCookie: serialization to/from cookie storage
  *   - serverKey + fromServer/toServer: opt-in sync to ~/.plannotator/config.json
@@ -14,7 +13,6 @@ import { storage } from '../utils/storage';
 import { generateIdentity } from '../utils/generateIdentity';
 
 export interface SettingDef<T> {
-  cookieKey: string;
   defaultValue: T | (() => T);
   fromCookie: () => T | undefined;
   toCookie: (value: T) => void;
@@ -26,7 +24,6 @@ export interface SettingDef<T> {
 
 export const SETTINGS = {
   displayName: {
-    cookieKey: 'plannotator-identity',
     defaultValue: () => generateIdentity(),
     fromCookie: () => storage.getItem('plannotator-identity') || undefined,
     toCookie: (v: string) => storage.setItem('plannotator-identity', v),

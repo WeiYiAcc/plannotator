@@ -1,5 +1,5 @@
 /**
- * React hooks for consuming ConfigStore values.
+ * React hook for consuming ConfigStore values.
  *
  * Uses useSyncExternalStore for concurrent-mode-safe subscriptions
  * to the singleton configStore — no context provider needed.
@@ -17,17 +17,4 @@ export function useConfigValue<K extends SettingName>(key: K): SettingValue<K> {
   );
   const getSnapshot = useCallback(() => configStore.get(key), [key]);
   return useSyncExternalStore(subscribe, getSnapshot);
-}
-
-/** Get a stable setter for a config value. */
-export function useSetConfig<K extends SettingName>(key: K) {
-  return useCallback(
-    (value: SettingValue<K>) => configStore.set(key, value),
-    [key],
-  );
-}
-
-/** Read + write in one hook (mirrors useState API). */
-export function useConfig<K extends SettingName>(key: K) {
-  return [useConfigValue(key), useSetConfig(key)] as const;
 }

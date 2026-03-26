@@ -5,7 +5,7 @@ import { createServer } from "node:http";
 import { Readable } from "node:stream";
 
 import { contentHash, deleteDraft } from "../generated/draft.js";
-import { loadConfig, saveConfig, detectGitUser } from "../generated/config.js";
+import { saveConfig, detectGitUser, getServerConfig } from "../generated/config.js";
 
 export type {
 	DiffOption,
@@ -299,7 +299,7 @@ export async function startReviewServer(options: {
 				...(isPRMode && { prMetadata: prMeta, platformUser }),
 				...(isPRMode && initialViewedFiles.length > 0 && { viewedFiles: initialViewedFiles }),
 				...(currentError ? { error: currentError } : {}),
-				serverConfig: { displayName: loadConfig().displayName, gitUser: gitUser ?? undefined },
+				serverConfig: getServerConfig(gitUser),
 			});
 		} else if (url.pathname === "/api/diff/switch" && req.method === "POST") {
 			if (isPRMode) {

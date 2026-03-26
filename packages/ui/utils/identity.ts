@@ -12,8 +12,6 @@
 
 import { configStore } from '../config';
 import { generateIdentity } from './generateIdentity';
-// Re-export for external consumers
-export { generateIdentity };
 
 /**
  * Get current identity from ConfigStore.

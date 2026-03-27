@@ -989,6 +989,7 @@ const App: React.FC = () => {
   const agentName = useMemo(() => {
     if (origin === 'opencode') return 'OpenCode';
     if (origin === 'claude-code') return 'Claude Code';
+    if (origin === 'copilot-cli') return 'Copilot CLI';
     if (origin === 'pi') return 'Pi';
     if (origin === 'codex') return 'Codex';
     return 'Coding Agent';
@@ -1028,7 +1029,9 @@ const App: React.FC = () => {
                   ? 'bg-orange-500/15 text-orange-400'
                   : origin === 'pi'
                     ? 'bg-violet-500/15 text-violet-400'
-                    : 'bg-zinc-500/20 text-zinc-400'
+                    : origin === 'copilot-cli'
+                      ? 'bg-blue-500/15 text-blue-400'
+                      : 'bg-zinc-500/20 text-zinc-400'
               }`}>
                 {agentName}
               </span>

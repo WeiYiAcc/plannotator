@@ -32,7 +32,6 @@ import {
   startAnnotateServer,
   handleAnnotateServerReady,
 } from "@plannotator/server/annotate";
-import { writeRemoteShareLink } from "@plannotator/server/share-url";
 import {
   handleReviewCommand,
   handleAnnotateCommand,
@@ -417,9 +416,6 @@ Do NOT proceed with implementation until your plan is approved.`);
             opencodeClient: ctx.client,
             onReady: async (url, isRemote, port) => {
               handleServerReady(url, isRemote, port);
-              if (isRemote && sharingEnabled) {
-                await writeRemoteShareLink(planContent, getShareBaseUrl(), "review the plan", "plan only").catch(() => {});
-              }
             },
           });
 

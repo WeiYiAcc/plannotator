@@ -6,66 +6,50 @@ author: "backnotprop"
 tags: ["compound-planning", "plan-mode", "claude-code"]
 ---
 
-**Every time you deny a plan in Claude Code, you're teaching the agent what you care about.** The problem is that feedback disappears into logs. You've already told Claude what you want — dozens, maybe hundreds of times — but each planning session starts from zero. Compound Planning changes that. It reads your denial history, finds the patterns in your feedback, and turns them into instructions that get injected into every future plan.
+**Compound Planning.** If you've been actively using plan mode in Claude Code, there's an opportunity to improve how your agents plan for you. This is a skill that analyzes your plan denial history, surfaces your own feedback patterns, and creates an automated loop that refines planning over time. The point is to consistently optimize what works best for you.
 
-## Watch the Demo
+If you use plan mode and deny plans, you already have the data. The skill reads it and puts it to work. It works day one for any Claude Code user who has been actively using plan mode. [Plannotator](https://github.com/backnotprop/plannotator) users get an even richer analysis since Plannotator captures full plan text and inline annotations with every denial. Plannotator is [open source](https://github.com/backnotprop/plannotator) and free.
 
-`VIDEO_PLACEHOLDER`
+[Install Plannotator](https://github.com/backnotprop/plannotator?tab=readme-ov-file#install-for-claude-code), then run:
 
-## The feedback you've already given is the most valuable data you have
+```
+/plannotator-compound
+```
 
-Think about the last time Claude proposed a plan you denied. Maybe the approach was wrong. Maybe it missed a constraint you care about. Maybe the structure wasn't what you expected. You wrote feedback, Claude revised, and eventually you approved.
+<video width="100%" style="aspect-ratio: 16/9; border-radius: 8px;" autoplay loop muted playsinline controls>
+  <source src="https://d17ygohy796f9l.cloudfront.net/videos/compound-planning.mp4" type="video/mp4" />
+</video>
 
-That feedback was precise. It was specific to your codebase, your preferences, your standards. It was the exact specification Claude needed to get it right.
+## How it works
 
-Then the next session started, and none of that context existed.
+When you deny a plan in Claude Code, that interaction gets logged. If you're a Plannotator user, it's even better. The more you use it, the richer your archive gets. Full plan text, inline annotations, structural feedback, all saved as markdown files that build up over time.
 
-This is the compounding problem. Every denied plan contains a signal — what you expect, what you reject, what language you use when something is wrong. Across weeks and months, those signals form a pattern. A pattern that, if an agent could see it, would prevent most denials from happening in the first place.
+Compound Planning reads that archive in three steps:
 
-## How plan mode denials work
+1. **Analyze** all your plan denials and approvals, surfacing insight patterns
+2. **Report** generates a personalized report so you can view your own findings and insights
+3. **Hook** creates an improvement hook that gets injected on plan enter mode, carrying forward the insights from the last time you ran the skill
 
-When you deny a plan in Claude Code, the interaction is recorded in your session logs at `~/.claude/projects/`. The `ExitPlanMode` tool call captures the outcome — approval or denial — and when you write a reason, that reason is stored alongside it.
+The report is personalized. Every quote is pulled from your actual feedback. Every percentage is calculated from your real data. The corrective instructions at the end trace directly back to your most frequent denial reasons.
 
-Plannotator users get an even richer version of this. Every denial is saved as a markdown file with the full plan text and all your annotations — inline comments, deletions, structural feedback. These files accumulate in `~/.plannotator/plans/` and form a detailed archive of exactly how you review plans.
+<video width="100%" style="aspect-ratio: 16/9; border-radius: 8px;" autoplay loop muted playsinline controls>
+  <source src="https://d17ygohy796f9l.cloudfront.net/videos/compound-planning-report.mp4" type="video/mp4" />
+</video>
 
-Either way, the data is already there. You've been generating it every time you review a plan. It's just been sitting unused.
+## Works for all Claude Code users
 
-## What Compound Planning does
+Plannotator users get the richest analysis since the archive contains full plan text and inline annotations. But you don't need Plannotator.
 
-Compound Planning is a skill that reads your entire denial history and produces two things: a personalized HTML report analyzing your feedback patterns, and a set of corrective instructions that can be automatically injected into future planning sessions.
+If you use Claude Code with plan mode, your denial reasons live in `~/.claude/projects/`. The skill includes a Python parser that extracts your `ExitPlanMode` outcomes, filters out boilerplate, and produces clean records of your human-authored feedback. The same analysis pipeline runs on this data and produces the same report.
 
-The process works in phases:
+## The feedback loop
 
-**Inventory** — It scans your archive, counts approved and denied plans, calculates your revision rate, and maps the date range. For Plannotator users, this means `*-denied.md` files and annotations. For Claude Code users, it runs a bundled parser that extracts human-authored denial reasons from your JSONL session logs.
+The real value is the improvement hook. The corrective instructions from your report can be saved to a file that gets injected into every future planning session automatically. Claude sees your feedback patterns before writing any plan.
 
-**Extraction** — Every denied plan or denial reason is read. For large archives, this happens in parallel across multiple agents. Nothing is sampled or skipped — the value comes from completeness.
-
-**Reduction** — The extracted data is analyzed for patterns. What categories of denial emerge from your actual feedback? What phrases do you use repeatedly? What do agents consistently get wrong for you specifically? How has your feedback evolved over time?
-
-**The report** — A single self-contained HTML file with seven sections that tell the story of your data. Not a generic dashboard — a narrative analysis built from your own words, your own patterns, your own standards. The taxonomy of denial reasons, the evolution of your expectations, and a set of numbered corrective instructions that trace back to real, frequent denial patterns. Every number is calculated, every quote is real.
-
-**The improvement hook** — The most actionable output. The corrective instructions from the report can be saved to a file that Plannotator's `EnterPlanMode` hook injects into every future planning session. Claude sees your feedback patterns before writing any plan. The denials you've already given become the specification for every plan going forward.
-
-## It works for all Claude Code users
-
-Plannotator users get the richest analysis — full plan text, inline annotations, structural feedback, and diff context. But you don't need Plannotator to use Compound Planning.
-
-If you use Claude Code with plan mode, your denial reasons are in your session logs. The skill includes a bundled Python parser that extracts `ExitPlanMode` outcomes from `~/.claude/projects/`, filters out boilerplate, and produces clean JSON records containing only your human-authored feedback. The same extraction, reduction, and report generation pipeline runs on this data.
-
-The report adapts to the data source. Plannotator archives produce richer reports with annotation-level insights. Claude Code logs produce reports focused on denial reasons and the patterns in your feedback language. Both produce the corrective prompt instructions. Both close the loop.
-
-## Your feedback is your specification
-
-The specification paradox says that as agents get more capable, the cost of poor specification rises. A vague plan executed confidently is worse than no plan at all. Speed compounds misalignment.
-
-But most developers already have a specification — they've expressed it through hundreds of plan denials. What structure they expect. What approaches they reject. What level of detail they need. What they mean when they say "too broad" or "wrong approach" or "you're overcomplicating this."
-
-Compound Planning doesn't ask you to write a specification from scratch. It extracts one from the feedback you've already given. Your denied plans aren't failures — they're the training data for better plans.
+Your denied plans aren't wasted work. They're the specification for better plans going forward.
 
 ## Try it
 
-If you have Plannotator installed, the skill is available now. If you're using Claude Code without Plannotator, the skill works with your existing session logs — no additional setup required.
+If you have [Plannotator](https://github.com/backnotprop/plannotator) installed, it works out of the box. If you're using Claude Code without Plannotator, the skill works with your existing session logs, no additional setup.
 
-The more denial history you have, the richer the analysis. If you've been using plan mode for weeks or months, you likely have a substantial archive of feedback that's never been put to use. Compound Planning reads all of it, finds what matters, and turns it into something that makes every future plan better.
-
-Start with [Plannotator's installation guide](/docs/getting-started/installation/) or check out the [compound planning skill](https://github.com/backnotprop/plannotator) in the repo.
+The more denial history you have, the richer the analysis. Start with the [installation guide](/docs/getting-started/installation/) or check out the [repo](https://github.com/backnotprop/plannotator).

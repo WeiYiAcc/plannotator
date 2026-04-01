@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { type Origin, getAgentName } from '@plannotator/shared/agents';
 import { ThemeProvider, useTheme } from '@plannotator/ui/components/ThemeProvider';
-import { ModeToggle } from '@plannotator/ui/components/ModeToggle';
 import { ConfirmDialog } from '@plannotator/ui/components/ConfirmDialog';
 import { Settings } from '@plannotator/ui/components/Settings';
 import { FeedbackButton, ApproveButton } from '@plannotator/ui/components/ToolbarButtons';
@@ -33,6 +32,7 @@ import { useAgentJobs } from '@plannotator/ui/hooks/useAgentJobs';
 import { exportEditorAnnotations } from '@plannotator/ui/utils/parser';
 import { ResizeHandle } from '@plannotator/ui/components/ResizeHandle';
 import { DockviewReact, type DockviewReadyEvent, type DockviewApi } from 'dockview-react';
+import { ReviewHeaderMenu } from './components/ReviewHeaderMenu';
 import { ReviewSidebar } from './components/ReviewSidebar';
 import { FileTree } from './components/FileTree';
 import { DEMO_DIFF } from './demoData';
@@ -114,6 +114,7 @@ const ReviewApp: React.FC = () => {
   const [selectedAnnotationId, setSelectedAnnotationId] = useState<string | null>(null);
   const [pendingSelection, setPendingSelection] = useState<SelectedLineRange | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [openSettingsMenu, setOpenSettingsMenu] = useState(false);
   const [showNoAnnotationsDialog, setShowNoAnnotationsDialog] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const diffStyle = useConfigValue('diffStyle');
@@ -142,6 +143,7 @@ const ReviewApp: React.FC = () => {
 
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
+  const [copyRawDiffStatus, setCopyRawDiffStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [viewedFiles, setViewedFiles] = useState<Set<string>>(new Set());
   const [hideViewedFiles, setHideViewedFiles] = useState(false);
   const [origin, setOrigin] = useState<Origin | null>(null);
@@ -979,12 +981,12 @@ const ReviewApp: React.FC = () => {
     if (!diffData) return;
     try {
       await navigator.clipboard.writeText(diffData.rawPatch);
-      setCopyFeedback('Diff copied!');
-      setTimeout(() => setCopyFeedback(null), 2000);
+      setCopyRawDiffStatus('success');
+      setTimeout(() => setCopyRawDiffStatus('idle'), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
-      setCopyFeedback('Failed to copy');
-      setTimeout(() => setCopyFeedback(null), 2000);
+      setCopyRawDiffStatus('error');
+      setTimeout(() => setCopyRawDiffStatus('idle'), 2000);
     }
   }, [diffData]);
 
@@ -1366,55 +1368,6 @@ const ReviewApp: React.FC = () => {
               </button>
             </div>
 
-            {/* Overflow toggle */}
-            <div className="flex items-center gap-1 bg-muted rounded-lg p-0.5">
-              <button
-                onClick={() => configStore.set('diffOverflow', 'scroll')}
-                className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                  diffOverflow === 'scroll'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                title="Scroll long lines horizontally"
-              >
-                Scroll
-              </button>
-              <button
-                onClick={() => configStore.set('diffOverflow', 'wrap')}
-                className={`px-2 py-1 text-xs rounded-md transition-colors ${
-                  diffOverflow === 'wrap'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground'
-                }`}
-                title="Wrap long lines"
-              >
-                Wrap
-              </button>
-            </div>
-
-            {/* Primary actions */}
-            <button
-              onClick={handleCopyDiff}
-              className="px-2 py-1 md:px-2.5 rounded-md text-xs font-medium bg-muted hover:bg-muted/80 transition-colors flex items-center gap-1.5"
-              title="Copy all raw diffs (Cmd+Shift+C)"
-            >
-              {copyFeedback === 'Diff copied!' ? (
-                <>
-                  <svg className="w-3.5 h-3.5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="hidden md:inline">Copied!</span>
-                </>
-              ) : (
-                <>
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
-                  <span className="hidden md:inline">Copy Raw Diffs</span>
-                </>
-              )}
-            </button>
-
             {origin ? (
               <>
                 {/* Destination dropdown (PR mode only) */}
@@ -1587,43 +1540,13 @@ const ReviewApp: React.FC = () => {
             <div className="w-px h-5 bg-border/50 mx-1 hidden md:block" />
 
             {/* Utilities */}
-            <ModeToggle />
-            <Settings
-              taterMode={false}
-              onTaterModeChange={() => {}}
-              onIdentityChange={handleIdentityChange}
-              origin={origin}
-              mode="review"
-              aiProviders={aiProviders}
-              gitUser={gitUser}
+            <ReviewHeaderMenu
+              isPanelOpen={isPanelOpen}
+              annotationCount={totalAnnotationCount}
+              onTogglePanel={() => setIsPanelOpen(!isPanelOpen)}
+              onOpenSettings={() => setOpenSettingsMenu(true)}
+              onOpenExport={() => setShowExportModal(true)}
             />
-
-            {/* Panel toggle */}
-            <button
-              onClick={() => setIsPanelOpen(!isPanelOpen)}
-              className={`p-1.5 rounded-md text-xs font-medium transition-all ${
-                isPanelOpen
-                  ? 'bg-primary/15 text-primary'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-              }`}
-              title={isPanelOpen ? 'Hide annotations' : 'Show annotations'}
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-              </svg>
-            </button>
-
-            {/* Export */}
-            <button
-              onClick={() => setShowExportModal(true)}
-              className="p-1.5 md:px-2.5 md:py-1 rounded-md text-xs font-medium bg-muted hover:bg-muted/80 transition-colors"
-              title="Export"
-            >
-              <svg className="w-4 h-4 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              <span className="hidden md:inline">Export</span>
-            </button>
           </div>
         </header>
 
@@ -1653,6 +1576,9 @@ const ReviewApp: React.FC = () => {
                 onSelectWorktree={handleWorktreeSwitch}
                 currentBranch={gitContext?.currentBranch}
                 stagedFiles={stagedFiles}
+                onCopyRawDiff={handleCopyDiff}
+                canCopyRawDiff={!!diffData?.rawPatch}
+                copyRawDiffStatus={copyRawDiffStatus}
                 searchQuery={searchQuery}
                 isSearchOpen={isSearchOpen}
                 isSearchPending={isSearchPending}
@@ -1819,6 +1745,20 @@ const ReviewApp: React.FC = () => {
             </div>
           </div>
         )}
+
+        <div className="hidden" aria-hidden="true">
+          <Settings
+            taterMode={false}
+            onTaterModeChange={() => {}}
+            onIdentityChange={handleIdentityChange}
+            origin={origin}
+            mode="review"
+            aiProviders={aiProviders}
+            gitUser={gitUser}
+            externalOpen={openSettingsMenu}
+            onExternalClose={() => setOpenSettingsMenu(false)}
+          />
+        </div>
 
         {/* No annotations dialog */}
         <ConfirmDialog

@@ -6,7 +6,11 @@ author: "backnotprop"
 tags: ["compound-planning", "plan-mode", "claude-code"]
 ---
 
-**Compound Planning.** If you've been actively using plan mode in Claude Code, there's an opportunity to improve how your agents plan for you. This is a skill that analyzes your plan denial history, surfaces your own feedback patterns, and creates an automated loop that refines planning over time. The point is to consistently optimize what works best for you.
+**Compound Planning.** If you've been actively using plan mode in Claude Code, there's an opportunity to improve how your agents plan for you. Here is a skill that analyzes your plan denial history, surfaces your own feedback patterns, and creates an automated loop that refines planning over time (at your request). The point is to consistently optimize what works best for you.
+
+<video width="100%" style="aspect-ratio: 16/9; border-radius: 8px; margin-bottom: 1.5rem;" autoplay loop muted playsinline controls>
+  <source src="https://d17ygohy796f9l.cloudfront.net/videos/compound-planning.mp4" type="video/mp4" />
+</video>
 
 If you use plan mode and deny plans, you already have the data. The skill reads it and puts it to work. It works day one for any Claude Code user who has been actively using plan mode. [Plannotator](https://github.com/backnotprop/plannotator) users get an even richer analysis since Plannotator captures full plan text and inline annotations with every denial. Plannotator is [open source](https://github.com/backnotprop/plannotator) and free.
 
@@ -15,10 +19,6 @@ If you use plan mode and deny plans, you already have the data. The skill reads 
 ```
 /plannotator-compound
 ```
-
-<video width="100%" style="aspect-ratio: 16/9; border-radius: 8px;" autoplay loop muted playsinline controls>
-  <source src="https://d17ygohy796f9l.cloudfront.net/videos/compound-planning.mp4" type="video/mp4" />
-</video>
 
 ## How it works
 
@@ -32,7 +32,7 @@ Compound Planning reads that archive in three steps:
 
 The report is personalized. Every quote is pulled from your actual feedback. Every percentage is calculated from your real data. The corrective instructions at the end trace directly back to your most frequent denial reasons.
 
-<video width="100%" style="aspect-ratio: 16/9; border-radius: 8px;" autoplay loop muted playsinline controls>
+<video width="100%" style="aspect-ratio: 16/9; border-radius: 8px; margin-bottom: 1.5rem;" autoplay loop muted playsinline controls>
   <source src="https://d17ygohy796f9l.cloudfront.net/videos/compound-planning-report.mp4" type="video/mp4" />
 </video>
 

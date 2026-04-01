@@ -17,6 +17,10 @@ import type { DiffFile } from '../types';
 
 type ReviewSidebarTab = 'annotations' | 'ai' | 'agents';
 
+// Temporary hard kill-switch for review agents in the sidebar.
+// Keep local and explicit until the feature is ready to expose again.
+const REVIEW_AGENTS_ENABLED = false;
+
 interface ReviewSidebarProps {
   isOpen: boolean;
   onToggle: () => void;
@@ -145,12 +149,17 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = ({
   const totalCount = annotations.length + (editorAnnotations?.length ?? 0);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<ReviewSidebarTab>('annotations');
-  const hasAgents = !!agentCapabilities?.available;
+  const hasAgents = REVIEW_AGENTS_ENABLED && !!agentCapabilities?.available;
   const runningAgentCount = (agentJobs ?? []).filter(j => j.status === 'running' || j.status === 'starting').length;
 
   // Allow parent to control the active tab (e.g., switch to AI tab on ask)
   useEffect(() => {
-    if (activeTabOverride) setActiveTab(activeTabOverride);
+    if (!activeTabOverride) return;
+    if (activeTabOverride === 'agents' && !REVIEW_AGENTS_ENABLED) {
+      setActiveTab('annotations');
+      return;
+    }
+    setActiveTab(activeTabOverride);
   }, [activeTabOverride]);
 
   const handleTabChange = (tab: ReviewSidebarTab | 'summary' | 'comments' | 'checks') => {
@@ -159,6 +168,7 @@ export const ReviewSidebar: React.FC<ReviewSidebarProps> = ({
       onOpenPRPanel?.(tab);
       return;
     }
+    if (tab === 'agents' && !REVIEW_AGENTS_ENABLED) return;
     setActiveTab(tab);
     onTabChange?.(tab);
   };

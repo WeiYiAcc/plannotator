@@ -28,10 +28,13 @@ interface FileTreeProps {
   currentBranch?: string;
   stagedFiles?: Set<string>;
   searchQuery?: string;
+  isSearchOpen?: boolean;
   isSearchPending?: boolean;
   searchInputRef?: React.RefObject<HTMLInputElement | null>;
+  onOpenSearch?: () => void;
   onSearchChange?: (value: string) => void;
   onSearchClear?: () => void;
+  onSearchClose?: () => void;
   searchGroups?: ReviewSearchFileGroup[];
   searchMatches?: ReviewSearchMatch[];
   activeSearchMatchId?: string | null;
@@ -61,16 +64,21 @@ export const FileTree: React.FC<FileTreeProps> = ({
   currentBranch,
   stagedFiles,
   searchQuery = '',
+  isSearchOpen = false,
   isSearchPending,
   searchInputRef,
+  onOpenSearch,
   onSearchChange,
   onSearchClear,
+  onSearchClose,
   searchGroups = [],
   searchMatches = [],
   activeSearchMatchId,
   onSelectSearchMatch,
   onStepSearchMatch,
 }) => {
+  const isSearchVisible = !!onSearchChange && (isSearchOpen || !!searchQuery.trim());
+
   // Keyboard navigation: j/k or arrow keys
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!enableKeyboardNav) return;
@@ -153,60 +161,6 @@ export const FileTree: React.FC<FileTreeProps> = ({
 
   return (
     <aside className="border-r border-border bg-card/30 flex flex-col flex-shrink-0 overflow-hidden" style={{ width: width ?? 256 }}>
-      {/* Search input */}
-      {onSearchChange && (
-        <div className="px-2 flex items-center border-b border-border/50" style={{ height: 'var(--panel-header-h)' }}>
-          <div className="relative flex-1">
-            <svg className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
-            </svg>
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
-                  e.preventDefault();
-                  return;
-                }
-                if (e.key === 'Enter' && searchMatches.length > 0 && !isSearchPending) {
-                  e.preventDefault();
-                  onStepSearchMatch?.(e.shiftKey ? -1 : 1);
-                }
-                if (e.key === 'Escape') {
-                  e.preventDefault();
-                  if (searchQuery) {
-                    onSearchClear?.();
-                  } else {
-                    (e.target as HTMLInputElement).blur();
-                  }
-                }
-              }}
-              placeholder="Search diff..."
-              className={`w-full pl-7 py-1.5 bg-muted rounded-md text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50 ${searchQuery ? 'pr-14' : 'pr-7'}`}
-            />
-            {searchQuery && (
-              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                {searchQuery.trim() && !isSearchPending && (
-                  <span className="text-[10px] text-muted-foreground/40 tabular-nums">
-                    {searchMatches.length}
-                  </span>
-                )}
-                <button
-                  onClick={onSearchClear}
-                  className="p-0.5 rounded hover:bg-background/50 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Header */}
       <div className="px-3 py-2 border-b border-border/50">
         <div className="flex items-center justify-between">
@@ -225,6 +179,17 @@ export const FileTree: React.FC<FileTreeProps> = ({
             <span className="text-xs text-muted-foreground">
               {viewedFiles.size}/{files.length}
             </span>
+            {onOpenSearch && (
+              <button
+                onClick={onOpenSearch}
+                className={`p-1 rounded transition-colors ${isSearchVisible ? 'bg-primary/15 text-primary' : 'hover:bg-muted text-muted-foreground'}`}
+                title="Search diff (Cmd/Ctrl+F)"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+                </svg>
+              </button>
+            )}
             <button
               onClick={() => setExpandedFolders(new Set(getAllFolderPaths(tree)))}
               className="p-1 rounded transition-colors hover:bg-muted text-muted-foreground"
@@ -266,6 +231,60 @@ export const FileTree: React.FC<FileTreeProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Search input */}
+      {isSearchVisible && (
+        <div className="px-2 flex items-center border-b border-border/50" style={{ height: 'var(--panel-header-h)' }}>
+          <div className="relative flex-1">
+            <svg className="absolute left-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/60 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="m21 21-4.35-4.35m1.85-5.15a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z" />
+            </svg>
+            <input
+              ref={searchInputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f') {
+                  e.preventDefault();
+                  return;
+                }
+                if (e.key === 'Enter' && searchMatches.length > 0 && !isSearchPending) {
+                  e.preventDefault();
+                  onStepSearchMatch?.(e.shiftKey ? -1 : 1);
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  if (searchQuery) {
+                    onSearchClear?.();
+                  } else {
+                    onSearchClose?.();
+                    (e.target as HTMLInputElement).blur();
+                  }
+                }
+              }}
+              placeholder="Search diff..."
+              className="w-full pl-7 py-1.5 pr-7 bg-muted rounded-md text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary/50"
+            />
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+              {searchQuery.trim() && !isSearchPending && (
+                <span className="text-[10px] text-muted-foreground/40 tabular-nums">
+                  {searchMatches.length}
+                </span>
+              )}
+              <button
+                onClick={searchQuery ? onSearchClear : onSearchClose}
+                className="p-0.5 rounded hover:bg-background/50 text-muted-foreground hover:text-foreground transition-colors"
+                title={searchQuery ? 'Clear search' : 'Close search'}
+              >
+                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Worktree context switcher — only shown when worktrees exist */}
       {worktrees && worktrees.length > 0 && onSelectWorktree && (

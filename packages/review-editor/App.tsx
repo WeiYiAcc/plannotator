@@ -568,6 +568,12 @@ const ReviewApp: React.FC = () => {
           setShowDestinationMenu(false);
         } else if (showExportModal) {
           setShowExportModal(false);
+        } else if (isSearchOpen) {
+          if (searchQuery) {
+            clearSearch();
+          } else {
+            closeSearch();
+          }
         } else if (searchQuery) {
           clearSearch();
         }
@@ -582,7 +588,7 @@ const ReviewApp: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showExportModal, showDestinationMenu, searchQuery, searchMatches, isSearchPending, openSearch, stepSearchMatch, clearSearch, files, gitContext?.diffOptions]);
+  }, [showExportModal, showDestinationMenu, isSearchOpen, searchQuery, searchMatches, isSearchPending, openSearch, stepSearchMatch, clearSearch, closeSearch, files, gitContext?.diffOptions]);
 
 
   // Load diff content - try API first, fall back to demo
@@ -1648,10 +1654,13 @@ const ReviewApp: React.FC = () => {
                 currentBranch={gitContext?.currentBranch}
                 stagedFiles={stagedFiles}
                 searchQuery={searchQuery}
+                isSearchOpen={isSearchOpen}
                 isSearchPending={isSearchPending}
                 searchInputRef={searchInputRef}
+                onOpenSearch={openSearch}
                 onSearchChange={handleSearchInputChange}
                 onSearchClear={clearSearch}
+                onSearchClose={closeSearch}
                 searchGroups={searchGroups}
                 searchMatches={searchMatches}
                 activeSearchMatchId={activeSearchMatchId}

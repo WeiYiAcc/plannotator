@@ -4,7 +4,8 @@ disable-model-invocation: true
 description: >
   Analyze a user's Plannotator plan archive to extract denial patterns, feedback
   taxonomy, evolution over time, and actionable prompt improvements — then produce
-  a polished HTML dashboard report.
+  a polished HTML dashboard report. Falls back to Claude Code ExitPlanMode denial
+  reasons when Plannotator data is unavailable.
 ---
 
 # Compound Planning Analysis
@@ -16,15 +17,42 @@ them into actionable insights, and produce an elegant HTML dashboard report.
 This is a multi-phase process. Each phase must complete fully before the next begins.
 Research integrity is paramount — every file must be read, no skipping.
 
+## Source Selection
+
+Before starting the analysis, determine which data source is available.
+
+1. **Plannotator mode (first-class)** — Check `~/.plannotator/plans/`. If it
+   exists and contains `*-denied.md` files, use this mode. The entire workflow
+   below is written for Plannotator data.
+
+2. **Claude Code fallback mode** — If the Plannotator archive is absent or
+   contains no denied plans, check `~/.claude/projects/`. If present, read
+   [references/claude-code-fallback.md](references/claude-code-fallback.md)
+   before continuing. That reference explains how to use the bundled parser at
+   [scripts/extract_exit_plan_mode_outcomes.py](scripts/extract_exit_plan_mode_outcomes.py)
+   to extract denial reasons from Claude Code JSONL transcripts. Every phase
+   below has a short note explaining what changes in fallback mode — the
+   reference file has the details.
+
+3. **Neither available** — Ask the user for their Plannotator plans directory or
+   Claude Code projects directory. Do not guess.
+
 ## Phase 0: Locate Plans & Check for Previous Reports
 
-Check for `~/.plannotator/plans/`. If it exists and contains `.md` files, proceed.
+Check for `~/.plannotator/plans/`. If it exists and contains `.md` files, proceed
+in **Plannotator mode**.
 
-If not found, ask the user:
-> "I couldn't find plans at ~/.plannotator/plans/. Where is your plans directory?"
+If not found, or if it contains no `*-denied.md` files, check for
+`~/.claude/projects/`. If present, switch to **Claude Code fallback mode** — read
+the fallback reference, run the bundled parser, and use the generated JSON parts
+as the source dataset. Then skip ahead to Phase 1.
 
-Once you have the path, verify it contains files matching `*-denied.md`. If none
-exist, inform the user there's no denial data to analyze and stop.
+If neither source is available, ask the user:
+> "I couldn't find a Plannotator archive at ~/.plannotator/plans/ or Claude Code
+> logs at ~/.claude/projects/. Which directory should I analyze?"
+
+In Plannotator mode, once you have the path, verify it contains files matching
+`*-denied.md`. If none exist, check for Claude Code logs before stopping.
 
 ### Previous Report Detection
 
@@ -112,6 +140,11 @@ Extract dates from all filenames.
 
 Tell the user what you found and that you're beginning the extraction.
 
+**Claude Code fallback mode:** The Plannotator inventory fields above do not apply.
+Follow the inventory instructions in
+[references/claude-code-fallback.md](references/claude-code-fallback.md) instead —
+report the denial-reason dataset assembled by the parser.
+
 ## Phase 2: Map — Parallel Extraction
 
 This is the most time-intensive phase. You must read EVERY `*-denied.md` file
@@ -120,6 +153,11 @@ This is the most time-intensive phase. You must read EVERY `*-denied.md` file
 **In scope** means: all denied files if running a full analysis, or only denied
 files dated after the cutoff date if running incrementally. In incremental mode,
 only process files whose embedded YYYY-MM-DD date is strictly after the cutoff.
+
+**Claude Code fallback mode:** The parser output is the clean source dataset. Read
+the fallback reference for the extraction prompt and batching strategy specific to
+JSON part files. Do not go back to raw `.jsonl` logs unless the parser fails or the
+user asks for audit-level verification.
 
 **Important:** Only read `*-denied.md` files. Do NOT read approved plans,
 annotation files, or diff files. Each denied file contains the full plan text
@@ -247,6 +285,10 @@ extraction files and produce the full analysis. This covers most datasets.
    files and synthesizes them into the final comprehensive analysis. This agent
    merges taxonomies, combines counts, deduplicates patterns, and reconciles any
    conflicting categorizations across partials.
+
+**Claude Code fallback mode:** The reduction phase is the same. The only upstream
+difference is that extraction files were derived from normalized denial-reason JSON
+instead of Plannotator markdown files.
 
 ### Reduction Prompt
 
@@ -427,6 +469,10 @@ one — the flow moves from "what happened" through "why" to "what to do about i
 - If the user has < 3 months of data, reduce the evolution section to fewer cards
 - If most denied files lack feedback below the `---` (bare denials with no
   annotations), note this in the narrative — the analysis will be thinner
+- **Claude Code fallback mode:** Explicitly label the report source as Claude Code
+  `ExitPlanMode` denial reasons. Do not fabricate Plannotator-only fields such as
+  annotation counts or approved-plan line counts. See the fallback reference for
+  KPI substitutes and footer/provenance guidance.
 - If fewer than 5 denial categories emerge, combine the taxonomy and patterns
   sections into one
 - If the dataset is very small (< 20 files), the narrative should acknowledge the
@@ -456,6 +502,10 @@ Tell the user:
 - The single most impactful prompt improvement
 - Where the report was saved (including version number)
 - If incremental: remind the user that earlier findings are in the previous report
+
+**Claude Code fallback mode:** Adapt the summary per the fallback reference —
+report human denial reasons analyzed and total `ExitPlanMode` attempts scanned
+instead of Plannotator file counts.
 
 ## Phase 6: Improvement Hook
 
@@ -510,6 +560,8 @@ Read the existing file and present the user with a choice:
 
 ## Important Notes
 
+- **Data source priority:** Plannotator is the first-class path. Claude Code log
+  analysis is the secondary path for users without Plannotator archives.
 - **Research integrity:** Every file must be read. The value of this analysis comes
   from completeness. Sampling or skipping undermines the findings.
 - **Real data only:** Never fabricate quotes, percentages, or patterns. If the data
